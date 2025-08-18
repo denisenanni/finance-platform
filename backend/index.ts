@@ -62,19 +62,41 @@ app.use(globalLimiter);
 // CORS CONFIGURATION WITH SECURITY
 // ============================================================================
 
-const allowedOrigins = [
-  process.env.FRONTEND_URL || "http://localhost:3000",
-  "http://localhost:3000", // Your frontend
-  "http://localhost:4000", // Swagger/API docs
-  "http://127.0.0.1:3000", // Alternative localhost
-  "http://127.0.0.1:4000", // Alternative localhost
-  ...(process.env.ADDITIONAL_ORIGINS?.split(",") || []),
-].filter(Boolean);
+const getAllowedOrigins = (): string[] => {
+  const origins = new Set<string>([
+    // Default origins for local development
+    "http://localhost:3000",
+    "http://localhost:4000",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:4000",
+  ]);
+
+  const fromEnv = [
+    process.env.CORS_ORIGIN,
+    process.env.FRONTEND_URL,
+    process.env.ADDITIONAL_ORIGINS,
+  ]
+    .filter(Boolean) // Remove undefined/null/empty strings
+    .join(","); // Join them all into a single string
+
+  fromEnv
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean)
+    .forEach((origin) => origins.add(origin));
+
+  return Array.from(origins);
+};
+
+const allowedOrigins = getAllowedOrigins();
+
+// Log allowed origins for easier debugging
+console.log("✅ Allowed CORS origins:", allowedOrigins);
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, etc.)
+      // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
 
       if (allowedOrigins.includes(origin)) {
