@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../generated/prisma"
@@ -12,4 +9,240 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// Core user model for authentication (with basic security fields)
+model User {
+  id                String   @id @default(uuid())
+  email             String   @unique
+  passwordHash      String   @map("password_hash")
+  firstName         String?  @map("first_name")
+  lastName          String?  @map("last_name")
+  avatarUrl         String?  @map("avatar_url")
+  emailVerified     Boolean  @default(false)  @map("email_verified")
+  virtualBalance    Decimal  @default(10000.00) @map("virtual_balance") @db.Decimal(15,2)
+  
+  // Basic security fields
+  isActive          Boolean  @default(true) @map("is_active")
+  lastLoginAt       DateTime? @map("last_login_at")
+  lastSeenAt        DateTime? @map("last_seen_at")  
+  lockedUntil       DateTime?  @map("locked_until") 
+  lastSeenIP        String?   @map("last_seen_ip") 
+  loginAttempts     Int      @default(0) @map("login_attempts")
+  
+  // Timestamps
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  sessions          UserSession[]
+  portfolios        Portfolio[]
+  transactions      Transaction[]
+  watchlists        Watchlist[]
+  achievements      UserAchievement[]
+  quizAttempts      UserQuizAttempt[]
+  preferences       UserPreference?
+  savedAnalyses     SavedAnalysis[]
+  
+  @@map("users")
+}
+
+// JWT refresh token management (unchanged)
+model UserSession {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  tokenHash    String   @map("token_hash")
+  expiresAt    DateTime @map("expires_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("user_sessions")
+}
+
+// Keep your existing models unchanged
+model Asset {
+  id          String    @id @default(uuid())
+  symbol      String    @unique
+  name        String
+  assetType   String    @map("asset_type")
+  exchange    String?
+  sector      String?
+  description String?
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // Relations (for later phases)
+  marketData        MarketData[]
+  priceHistory      PriceHistory[]
+  portfolioHoldings PortfolioHolding[]
+  transactions      Transaction[]
+  watchlists        Watchlist[]
+  technicalIndicators TechnicalIndicator[]
+  
+  @@map("assets")
+}
+
+model Portfolio {
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+  name            String    @default("My Portfolio")
+  description     String?
+  isDefault       Boolean   @default(false) @map("is_default")
+  totalValue      Decimal   @default(0.00) @map("total_value") @db.Decimal(15,2)
+  totalCost       Decimal   @default(0.00) @map("total_cost") @db.Decimal(15,2)
+  totalReturn     Decimal   @default(0.00) @map("total_return") @db.Decimal(15,2)
+  returnPercentage Decimal  @default(0.00) @map("return_percentage") @db.Decimal(8,4)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  holdings        PortfolioHolding[]
+  transactions    Transaction[]
+  
+  @@map("portfolios")
+}
+
+// Simplified models for MVP (you can expand these later)
+model MarketData {
+  id                String   @id @default(uuid())
+  assetId           String   @map("asset_id")
+  price             Decimal  @db.Decimal(15,4)
+  volume            BigInt?
+  marketCap         Decimal? @map("market_cap") @db.Decimal(20,2)
+  change24h         Decimal? @map("change_24h") @db.Decimal(10,4)
+  changePercent24h  Decimal? @map("change_percent_24h") @db.Decimal(8,4)
+  high24h           Decimal? @map("high_24h") @db.Decimal(15,4)
+  low24h            Decimal? @map("low_24h") @db.Decimal(15,4)
+  timestamp         DateTime
+  createdAt         DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  asset             Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  
+  @@map("market_data")
+}
+
+// Add other models as needed for later phases...
+model PriceHistory {
+  id         String   @id @default(uuid())
+  assetId    String   @map("asset_id")
+  openPrice  Decimal  @map("open_price") @db.Decimal(15,4)
+  highPrice  Decimal  @map("high_price") @db.Decimal(15,4)
+  lowPrice   Decimal  @map("low_price") @db.Decimal(15,4)
+  closePrice Decimal  @map("close_price") @db.Decimal(15,4)
+  volume     BigInt?
+  date       DateTime @db.Date
+  timeframe  String   @default("daily")
+  createdAt  DateTime @default(now()) @map("created_at")
+  
+  asset      Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  
+  @@unique([assetId, date, timeframe])
+  @@map("price_history")
+}
+
+model PortfolioHolding {
+  id                  String    @id @default(uuid())
+  portfolioId         String    @map("portfolio_id")
+  assetId             String    @map("asset_id")
+  quantity            Decimal   @default(0) @db.Decimal(18,8)
+  averageCost         Decimal   @default(0) @map("average_cost") @db.Decimal(15,4)
+  totalCost           Decimal   @default(0) @map("total_cost") @db.Decimal(15,2)
+  currentValue        Decimal?  @map("current_value") @db.Decimal(15,2)
+  unrealizedGainLoss  Decimal?  @map("unrealized_gain_loss") @db.Decimal(15,2)
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  
+  portfolio           Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  asset               Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  
+  @@unique([portfolioId, assetId])
+  @@map("portfolio_holdings")
+}
+
+model Transaction {
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+  portfolioId     String    @map("portfolio_id")
+  assetId         String    @map("asset_id")
+  transactionType String    @map("transaction_type") // 'BUY', 'SELL'
+  quantity        Decimal   @db.Decimal(18,8)
+  price           Decimal   @db.Decimal(15,4)
+  totalAmount     Decimal   @map("total_amount") @db.Decimal(15,2)
+  fees            Decimal   @default(0.00) @db.Decimal(15,2)
+  notes           String?
+  executedAt      DateTime  @default(now()) @map("executed_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  portfolio       Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  asset           Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  
+  @@map("transactions")
+}
+
+model Watchlist {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  assetId   String   @map("asset_id")
+  addedAt   DateTime @default(now()) @map("added_at")
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, assetId])
+  @@map("watchlists")
+}
+
+model TechnicalIndicator {
+  id            String   @id @default(uuid())
+  assetId       String   @map("asset_id")
+  indicatorType String   @map("indicator_type")
+  period        Int
+  value         Decimal? @db.Decimal(15,6)
+  signal        String?
+  date          DateTime @db.Date
+  createdAt     DateTime @default(now()) @map("created_at")
+  
+  asset         Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  
+  @@unique([assetId, indicatorType, period, date])
+  @@map("technical_indicators")
+}
+
+// Placeholder models for later phases
+model UserPreference {
+  id        String @id @default(uuid())
+  userId    String @unique @map("user_id")
+  // Add preferences fields later
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@map("user_preferences")
+}
+
+model UserAchievement {
+  id        String @id @default(uuid())
+  userId    String @map("user_id")
+  // Add achievement fields later
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@map("user_achievements")
+}
+
+model UserQuizAttempt {
+  id        String @id @default(uuid())
+  userId    String @map("user_id")
+  // Add quiz fields later
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@map("user_quiz_attempts")
+}
+
+model SavedAnalysis {
+  id        String @id @default(uuid())
+  userId    String @map("user_id")
+  // Add analysis fields later
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@map("saved_analyses")
 }

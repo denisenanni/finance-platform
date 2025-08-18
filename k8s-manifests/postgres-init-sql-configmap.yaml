@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-sql
+  namespace: financeplatform
+data:
+  init.sql: |
+    -- FinanceSkills Hub Database Schema - Basic Security Version
+    
+    -- Enable UUID extension
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    
+    -- Users table (with basic security fields)
+    CREATE TABLE users (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        first_name VARCHAR(100),
+        last_name VARCHAR(100),
+        avatar_url VARCHAR(500),
+        email_verified BOOLEAN DEFAULT FALSE,
+        virtual_balance DECIMAL(15,2) DEFAULT 10000.00,
+        
+        -- Basic security fields
+        is_active BOOLEAN DEFAULT TRUE,
+        last_login_at TIMESTAMP WITH TIME ZONE,
+        login_attempts INTEGER DEFAULT 0,
+        last_seen_ip VARCHAR(50),
+        locked_until TIMESTAMP WITH TIME ZONE,
+        last_seen_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- User sessions/tokens (for JWT management)
+    CREATE TABLE user_sessions (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        token_hash VARCHAR(255) NOT NULL,
+        expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Assets/Securities master table
+    CREATE TABLE assets (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        symbol VARCHAR(20) UNIQUE NOT NULL,
+        name VARCHAR(200) NOT NULL,
+        asset_type VARCHAR(50) NOT NULL,
+        exchange VARCHAR(100),
+        sector VARCHAR(100),
+        description TEXT,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- User portfolios (virtual trading)
+    CREATE TABLE portfolios (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        name VARCHAR(200) NOT NULL DEFAULT 'My Portfolio',
+        description TEXT,
+        is_default BOOLEAN DEFAULT FALSE,
+        total_value DECIMAL(15,2) DEFAULT 0.00,
+        total_cost DECIMAL(15,2) DEFAULT 0.00,
+        total_return DECIMAL(15,2) DEFAULT 0.00,
+        return_percentage DECIMAL(8,4) DEFAULT 0.00,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Create basic indexes
+    CREATE INDEX idx_users_email ON users(email);
+    CREATE INDEX idx_users_active ON users(is_active);
+    CREATE INDEX idx_user_sessions_user_id ON user_sessions(user_id);
+    CREATE INDEX idx_assets_symbol ON assets(symbol);
+    CREATE INDEX idx_portfolios_user_id ON portfolios(user_id);
+
+    -- Insert basic sample data
+    INSERT INTO assets (symbol, name, asset_type, exchange, sector) VALUES
+    ('AAPL', 'Apple Inc.', 'STOCK', 'NASDAQ', 'Technology'),
+    ('GOOGL', 'Alphabet Inc.', 'STOCK', 'NASDAQ', 'Technology'),
+    ('MSFT', 'Microsoft Corporation', 'STOCK', 'NASDAQ', 'Technology'),
+    ('TSLA', 'Tesla Inc.', 'STOCK', 'NASDAQ', 'Automotive'),
+    ('BTC', 'Bitcoin', 'CRYPTO', 'Crypto', 'Cryptocurrency'),
+    ('ETH', 'Ethereum', 'CRYPTO', 'Crypto', 'Cryptocurrency'),
+    ('SPY', 'SPDR S&P 500 ETF Trust', 'ETF', 'NYSE', 'Index Fund');
+
+    -- Create a test user with CORRECT password hash
+    INSERT INTO users (email, password_hash, first_name, last_name, virtual_balance, email_verified) VALUES
+    ('demo@financeskills.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqfowlVfxVdu3vQVs8VwFUe', 'Demo', 'User', 50000.00, true);

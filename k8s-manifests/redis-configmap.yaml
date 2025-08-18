@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+data:
+  redis.conf: |
+    # Minimal Redis config example based on your redis.conf file
+    bind 0.0.0.0
+    protected-mode no
+    port 6379
+    # Add any custom config directives you have in your redis.conf
