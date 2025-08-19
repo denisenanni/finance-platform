@@ -235,16 +235,15 @@ const securityStats = (req: Request, res: Response): void => {
 app.get("/security/stats", securityStats);
 
 // ============================================================================
-// AUTHENTICATION ROUTES
+// API ROUTER
 // ============================================================================
 
-// ✅ Fixed: Now properly importing and using auth routes
-app.use("/api/auth", authRoutes);
+const apiRouter = express.Router();
 
-// ============================================================================
-// PROTECTED ROUTES
-// ============================================================================
+// Authentication routes
+apiRouter.use("/auth", authRoutes);
 
+// Protected routes
 /**
  * @swagger
  * /profile:
@@ -254,7 +253,7 @@ app.use("/api/auth", authRoutes);
  *     security:
  *       - bearerAuth: []
  */
-app.get(
+apiRouter.get(
   "/profile",
   authenticateToken,
   requireEmailVerification,
@@ -325,7 +324,7 @@ app.get(
  *   put:
  *     summary: Update user profile
  */
-app.put(
+apiRouter.put(
   "/profile",
   authenticateToken,
   requireEmailVerification,
@@ -402,10 +401,7 @@ app.put(
   }
 );
 
-// ============================================================================
-// PUBLIC ROUTES WITH LIGHT RATE LIMITING
-// ============================================================================
-
+// Public API routes
 const publicApiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: isProduction ? 200 : 1000,
@@ -421,7 +417,7 @@ const publicApiLimiter = rateLimit({
  *   get:
  *     summary: Get all assets
  */
-app.get(
+apiRouter.get(
   "/assets",
   publicApiLimiter,
   async (req: Request, res: Response): Promise<void> => {
@@ -491,7 +487,7 @@ app.get(
 );
 
 // Market data endpoint with enhanced validation
-app.get(
+apiRouter.get(
   "/market-data/quote/:symbol",
   publicApiLimiter,
   (req: Request, res: Response) => {
@@ -552,6 +548,9 @@ app.get(
     res.json(data);
   }
 );
+
+// Mount the master API router
+app.use("/api", apiRouter);
 
 // ============================================================================
 // ADMIN ROUTES (Development/Testing Only)

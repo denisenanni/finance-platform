@@ -21,11 +21,11 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       {
-        url: "http://localhost:4000",
+        url: "http://localhost:4000/api",
         description: "Development server",
       },
       {
-        url: "https://api.financeskills.com",
+        url: "https://api.financeskills.com/api",
         description: "Production server",
       },
     ],
