@@ -62,19 +62,41 @@ app.use(globalLimiter);
 // CORS CONFIGURATION WITH SECURITY
 // ============================================================================
 
-const allowedOrigins = [
-  process.env.FRONTEND_URL || "http://localhost:3000",
-  "http://localhost:3000", // Your frontend
-  "http://localhost:4000", // Swagger/API docs
-  "http://127.0.0.1:3000", // Alternative localhost
-  "http://127.0.0.1:4000", // Alternative localhost
-  ...(process.env.ADDITIONAL_ORIGINS?.split(",") || []),
-].filter(Boolean);
+const getAllowedOrigins = (): string[] => {
+  const origins = new Set<string>([
+    // Default origins for local development
+    "http://localhost:3000",
+    "http://localhost:4000",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:4000",
+  ]);
+
+  const fromEnv = [
+    process.env.CORS_ORIGIN,
+    process.env.FRONTEND_URL,
+    process.env.ADDITIONAL_ORIGINS,
+  ]
+    .filter(Boolean) // Remove undefined/null/empty strings
+    .join(","); // Join them all into a single string
+
+  fromEnv
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean)
+    .forEach((origin) => origins.add(origin));
+
+  return Array.from(origins);
+};
+
+const allowedOrigins = getAllowedOrigins();
+
+// Log allowed origins for easier debugging
+console.log("✅ Allowed CORS origins:", allowedOrigins);
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, etc.)
+      // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
 
       if (allowedOrigins.includes(origin)) {
@@ -213,16 +235,15 @@ const securityStats = (req: Request, res: Response): void => {
 app.get("/security/stats", securityStats);
 
 // ============================================================================
-// AUTHENTICATION ROUTES
+// API ROUTER
 // ============================================================================
 
-// ✅ Fixed: Now properly importing and using auth routes
-app.use("/api/auth", authRoutes);
+const apiRouter = express.Router();
 
-// ============================================================================
-// PROTECTED ROUTES
-// ============================================================================
+// Authentication routes
+apiRouter.use("/auth", authRoutes);
 
+// Protected routes
 /**
  * @swagger
  * /profile:
@@ -232,7 +253,7 @@ app.use("/api/auth", authRoutes);
  *     security:
  *       - bearerAuth: []
  */
-app.get(
+apiRouter.get(
   "/profile",
   authenticateToken,
   requireEmailVerification,
@@ -303,7 +324,7 @@ app.get(
  *   put:
  *     summary: Update user profile
  */
-app.put(
+apiRouter.put(
   "/profile",
   authenticateToken,
   requireEmailVerification,
@@ -380,10 +401,7 @@ app.put(
   }
 );
 
-// ============================================================================
-// PUBLIC ROUTES WITH LIGHT RATE LIMITING
-// ============================================================================
-
+// Public API routes
 const publicApiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: isProduction ? 200 : 1000,
@@ -399,7 +417,7 @@ const publicApiLimiter = rateLimit({
  *   get:
  *     summary: Get all assets
  */
-app.get(
+apiRouter.get(
   "/assets",
   publicApiLimiter,
   async (req: Request, res: Response): Promise<void> => {
@@ -469,7 +487,7 @@ app.get(
 );
 
 // Market data endpoint with enhanced validation
-app.get(
+apiRouter.get(
   "/market-data/quote/:symbol",
   publicApiLimiter,
   (req: Request, res: Response) => {
@@ -530,6 +548,9 @@ app.get(
     res.json(data);
   }
 );
+
+// Mount the master API router
+app.use("/api", apiRouter);
 
 // ============================================================================
 // ADMIN ROUTES (Development/Testing Only)
