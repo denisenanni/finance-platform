@@ -131,14 +131,6 @@ kubectl apply -n $NAMESPACE -f $MANIFEST_DIR/postgres-service.yaml
 echo "Waiting for PostgreSQL to be ready..."
 kubectl wait --namespace $NAMESPACE --for=condition=ready pod -l app=postgres --timeout=120s
 
-
-echo "Deploying PgAdmin..."
-kubectl apply -n $NAMESPACE -f $MANIFEST_DIR/pgadmin-deployment.yaml
-kubectl apply -n $NAMESPACE -f $MANIFEST_DIR/pgadmin-service.yaml
-echo "Waiting for PgAdmin to be ready..."
-kubectl wait --namespace $NAMESPACE --for=condition=ready pod -l app=pgadmin --timeout=120s
-
-
 echo "Deploying Redis..."
 kubectl apply -n $NAMESPACE -f $MANIFEST_DIR/redis-deployment.yaml
 kubectl apply -n $NAMESPACE -f $MANIFEST_DIR/redis-service.yaml
