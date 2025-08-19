@@ -1,13 +1,24 @@
 #!/bin/bash
-# Function to cleanup port-forward on script exit# 1. Health Check Function
+
+# Global variables
+NAMESPACE=financeplatform
+MANIFEST_DIR="../k8s-manifests"
+LOG_FILE="deploy.log"
+PORT_FORWARD_PID=""
+BACKEND_PID=""
+PGADMIN_PID=""
+BACKEND_LOGS_PID=""
+FRONTEND_LOGS_PID=""
+
+# Health Check Function
 check_health() {
-    echo "🔍 Performing health checks..."
+    echo "Performing health checks..."
     
     # Check if port-forward is working
     if curl -s http://localhost:8080 > /dev/null; then
-        echo "✅ Application is responding on http://localhost:8080"
+        echo "Application is responding on http://localhost:8080"
     else
-        echo "⚠️  Application not responding yet, may still be starting..."
+        echo "Application not responding yet, may still be starting..."
     fi
     
     # Check database connectivity
@@ -15,69 +26,77 @@ check_health() {
         const { Pool } = require('pg');
         const pool = new Pool({connectionString: process.env.DATABASE_URL});
         pool.query('SELECT NOW()', (err, res) => {
-            if (err) console.log('❌ DB Error:', err.message);
-            else console.log('✅ Database connected successfully');
+            if (err) console.log('DB Error:', err.message);
+            else console.log('Database connected successfully');
             process.exit(0);
         });
-    " 2>/dev/null || echo "⚠️  Database health check skipped"
+    " 2>/dev/null || echo "Database health check skipped"
 }
 
-# 2. Auto-open browser
+# Auto-open browser
 open_browser() {
     sleep 3  # Wait for port-forward to be ready
     if command -v xdg-open > /dev/null; then
-        xdg-open http://localhost:8080
+        xdg-open http://localhost:8080 &
     elif command -v open > /dev/null; then
-        open http://localhost:8080
+        open http://localhost:8080 &
     fi
 }
 
-# 3. Watch logs in background
+# Watch logs in background
 tail_logs() {
-    echo "📋 Starting log tail in background..."
-    kubectl logs -f deployment/backend -n $NAMESPACE --prefix=true
+    echo "Starting log tail in background..."
+    kubectl logs -f deployment/backend -n $NAMESPACE --prefix=true &
     BACKEND_LOGS_PID=$!
-    kubectl logs -f deployment/frontend -n $NAMESPACE --prefix=true
+    kubectl logs -f deployment/frontend -n $NAMESPACE --prefix=true &
     FRONTEND_LOGS_PID=$!
 }
 
-# 4. Enhanced cleanup
+# Enhanced cleanup
 cleanup() {
     echo ""
-    echo "🛑 Cleaning up..."
+    echo "Cleaning up..."
     
-    # Kill port-forward
+    # Kill port-forward processes
     if [ ! -z "$PORT_FORWARD_PID" ] && kill -0 "$PORT_FORWARD_PID" 2>/dev/null; then
-        echo "Stopping port-forward..."
+        echo "Stopping main port-forward..."
         kill "$PORT_FORWARD_PID" 2>/dev/null
         wait "$PORT_FORWARD_PID" 2>/dev/null
+    fi
+    
+    if [ ! -z "$BACKEND_PID" ] && kill -0 "$BACKEND_PID" 2>/dev/null; then
+        echo "Stopping backend port-forward..."
+        kill "$BACKEND_PID" 2>/dev/null
+        wait "$BACKEND_PID" 2>/dev/null
+    fi
+    
+    if [ ! -z "$PGADMIN_PID" ] && kill -0 "$PGADMIN_PID" 2>/dev/null; then
+        echo "Stopping pgadmin port-forward..."
+        kill "$PGADMIN_PID" 2>/dev/null
+        wait "$PGADMIN_PID" 2>/dev/null
     fi
     
     # Kill log tails
     [ ! -z "$BACKEND_LOGS_PID" ] && kill "$BACKEND_LOGS_PID" 2>/dev/null
     [ ! -z "$FRONTEND_LOGS_PID" ] && kill "$FRONTEND_LOGS_PID" 2>/dev/null
     
-    echo "Cleanup complete. Goodbye! 👋"
+    echo "Cleanup complete. Goodbye!"
     exit 0
 }
+
 # Set up trap to catch EXIT, INT (Ctrl+C), and TERM signals
 trap cleanup EXIT INT TERM
 
+# Check Minikube status
 echo "Checking Minikube status..."
 minikube status
 if [ $? -ne 0 ]; then
-  echo "Minikube not running. Please start Minikube first."
-  exit 1
+    echo "Minikube not running. Please start Minikube first."
+    exit 1
 fi
 
-LOG_FILE="deploy.log"
+# Set up logging
 exec > >(tee -a "$LOG_FILE") 2>&1
-
-tail_logs
-
-NAMESPACE=financeplatform
-MANIFEST_DIR="../k8s-manifests"
-
 
 echo "Creating namespace '$NAMESPACE'..."
 kubectl apply -f $MANIFEST_DIR/namespace.yaml
@@ -97,19 +116,19 @@ kubectl delete secret frontend-secrets -n $NAMESPACE --ignore-not-found
 kubectl delete secret nginx-ssl-secret -n $NAMESPACE --ignore-not-found
 
 kubectl create secret generic backend-secrets \
-  --from-literal=postgres-password=dev123 \
-  --from-literal=postgres-user=dev \
-  --from-literal=postgres-db=financeplatform \
-  --from-literal=database-url="postgresql://dev:dev123@postgres:5432/financeplatform" \
-  --from-literal=redis-password=redis \
-  --from-literal=jwt-secret="$JWT_SECRET" \
-  --namespace=$NAMESPACE
+    --from-literal=postgres-password=dev123 \
+    --from-literal=postgres-user=dev \
+    --from-literal=postgres-db=financeplatform \
+    --from-literal=database-url="postgresql://dev:dev123@postgres:5432/financeplatform" \
+    --from-literal=redis-password=redis \
+    --from-literal=jwt-secret="$JWT_SECRET" \
+    --namespace=$NAMESPACE
 
 kubectl create secret generic frontend-secrets \
-  --from-literal=NEXT_PUBLIC_API_URL=http://localhost:3000 \
-  --from-literal=ANALYTICS_ID=your-analytics-id \
-  --from-literal=nextauth-secret="$NEXTAUTH_SECRET" \
-  --namespace=$NAMESPACE
+    --from-literal=NEXT_PUBLIC_API_URL=http://localhost:3000 \
+    --from-literal=ANALYTICS_ID=your-analytics-id \
+    --from-literal=nextauth-secret="$NEXTAUTH_SECRET" \
+    --namespace=$NAMESPACE
 
 # Create self-signed certificate for nginx (if files don't exist)
 if [ ! -f "tls.crt" ] || [ ! -f "tls.key" ]; then
@@ -121,9 +140,9 @@ if [ ! -f "tls.crt" ] || [ ! -f "tls.key" ]; then
 fi
 
 kubectl create secret tls nginx-ssl-secret \
-  --cert=tls.crt \
-  --key=tls.key \
-  -n $NAMESPACE
+    --cert=tls.crt \
+    --key=tls.key \
+    -n $NAMESPACE
 
 echo "Deploying PostgreSQL..."
 kubectl apply -n $NAMESPACE -f $MANIFEST_DIR/postgres-deployment.yaml
@@ -157,15 +176,18 @@ echo "Waiting for Nginx to be ready..."
 kubectl wait --namespace $NAMESPACE --for=condition=ready pod -l app=nginx --timeout=60s
 
 echo ""
-echo "🎉 All components deployed successfully!"
+echo "All components deployed successfully!"
 echo ""
 
 # Show deployment status
-echo "📊 Deployment Status:"
+echo "Deployment Status:"
 kubectl get pods -n $NAMESPACE
 echo ""
 
-echo "🚀 Starting FinanceFlow development access..."
+# Start log tailing before port forwarding
+tail_logs
+
+echo "Starting FinanceFlow development access..."
 kubectl port-forward -n $NAMESPACE svc/nginx 8080:80 &
 PORT_FORWARD_PID=$!
 
@@ -176,28 +198,26 @@ kubectl port-forward -n $NAMESPACE svc/pgadmin 8081:80 &
 PGADMIN_PID=$!
 
 # Wait a moment for port-forward to establish
-sleep 15
-
+sleep 5
 
 check_health
 open_browser
 
-
 echo ""
-echo "✅ FinanceFlow is now accessible at: http://localhost:8080"
-echo "📝 Logs are being written to: $LOG_FILE"
+echo "FinanceFlow is now accessible at: http://localhost:8080"
+echo "Logs are being written to: $LOG_FILE"
 echo ""
 echo "Additional access methods:"
 echo "  Backend API: minikube service backend -n $NAMESPACE"
 echo "  Frontend:    minikube service frontend -n $NAMESPACE"  
 echo "  Nginx:       minikube service nginx -n $NAMESPACE"
 echo ""
-echo "🔍 Useful commands while running:"
+echo "Useful commands while running:"
 echo "  kubectl get pods -n $NAMESPACE"
 echo "  kubectl logs -f deployment/backend -n $NAMESPACE"
 echo "  kubectl logs -f deployment/frontend -n $NAMESPACE"
 echo ""
-echo "🛑 Press Ctrl+C to stop the port-forward and exit cleanly"
+echo "Press Ctrl+C to stop the port-forward and exit cleanly"
 echo ""
 
 # Keep the script running and wait for the port-forward process
