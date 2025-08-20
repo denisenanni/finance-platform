@@ -12,6 +12,7 @@ import {
   getSecurityStats,
   requireEmailVerification,
 } from "@/middleware/auth";
+import { prisma } from "@/lib/prisma";
 
 // Load environment variables
 dotenv.config();
@@ -261,9 +262,6 @@ apiRouter.get(
   requireEmailVerification,
   async (req: Request, res: Response) => {
     try {
-      const { PrismaClient } = await import("./generated/prisma/client");
-      const prisma = new PrismaClient();
-
       // Get user's portfolios with security context logging
       console.log(`📊 Profile accessed - User: ${req.user!.id}, IP: ${req.ip}`);
 
@@ -308,8 +306,6 @@ apiRouter.get(
           tokenAge: req.securityContext?.tokenAge,
         },
       });
-
-      await prisma.$disconnect();
     } catch (error) {
       console.error("Profile error:", error);
       res.status(500).json({
@@ -365,9 +361,6 @@ apiRouter.put(
         return;
       }
 
-      const { PrismaClient } = await import("./generated/prisma/client");
-      const prisma = new PrismaClient();
-
       console.log(`✏️ Profile update - User: ${req.user!.id}, IP: ${req.ip}`);
 
       const updatedUser = await prisma.user.update({
@@ -392,7 +385,6 @@ apiRouter.put(
       });
 
       res.json(updatedUser);
-      await prisma.$disconnect();
     } catch (error) {
       console.error("Profile update error:", error);
       res.status(500).json({
@@ -446,9 +438,6 @@ apiRouter.get(
         return;
       }
 
-      const { PrismaClient } = await import("./generated/prisma/client");
-      const prisma = new PrismaClient();
-
       const whereClause: any = { isActive: true };
 
       if (type) {
@@ -477,7 +466,6 @@ apiRouter.get(
       });
 
       res.json(assets);
-      await prisma.$disconnect();
     } catch (error) {
       console.error("Assets error:", error);
       res.status(500).json({

@@ -2,11 +2,10 @@ import express, { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import rateLimit from "express-rate-limit";
-import { PrismaClient } from "../../generated/prisma/client";
+import { prisma } from "../lib/prisma";
 import { authenticateToken, blacklistToken } from "../middleware/auth";
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 const JWT_SECRET =
   process.env.JWT_SECRET ||
