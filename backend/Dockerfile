@@ -1,5 +1,5 @@
 # Stage 1: Base development image
-FROM node:20-alpine AS development
+FROM node:20-slim AS development
 
 # Set working directory
 WORKDIR /app
@@ -23,7 +23,7 @@ EXPOSE 3001
 CMD ["yarn", "run", "dev"]
 
 # Stage 2: Production build (uncomment for production)
-# FROM node:20-alpine AS production
+# FROM node:20-slim AS production
 # 
 # WORKDIR /app
 # 
