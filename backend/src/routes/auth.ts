@@ -796,4 +796,113 @@ router.post(
   }
 );
 
+/**
+ * @swagger
+ * /auth/social-login:
+ *   post:
+ *     summary: Login or register user via social provider
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - name
+ *               - provider
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               name:
+ *                 type: string
+ *               avatarUrl:
+ *                 type: string
+ *                 format: uri
+ *               provider:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Social login successful
+ *       400:
+ *         description: Invalid input
+ */
+router.post(
+  "/social-login",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { email, name, avatarUrl, provider } = req.body;
+      const clientIP = req.ip || "unknown";
+
+      if (!email || !name || !provider) {
+        res.status(400).json({
+          error: "Email, name, and provider are required",
+          code: "MISSING_SOCIAL_LOGIN_FIELDS",
+        });
+        return;
+      }
+
+      const [firstName, ...lastNameParts] = name.split(" ");
+      const lastName = lastNameParts.join(" ");
+
+      const user = await prisma.user.upsert({
+        where: { email: email.toLowerCase() },
+        update: {
+          firstName: firstName,
+          lastName: lastName,
+          avatarUrl: avatarUrl,
+          lastLoginAt: new Date(),
+          lastSeenAt: new Date(),
+          lastSeenIP: clientIP,
+        },
+        create: {
+          email: email.toLowerCase(),
+          firstName: firstName,
+          lastName: lastName,
+          avatarUrl: avatarUrl,
+          provider: provider,
+          emailVerified: true, // Email is verified by the OAuth provider
+          lastLoginAt: new Date(),
+          lastSeenAt: new Date(),
+          lastSeenIP: clientIP,
+        },
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          virtualBalance: true,
+          emailVerified: true,
+          lastLoginAt: true,
+        },
+      });
+
+      // Generate tokens
+      const { accessToken, refreshToken } = generateTokens(user.id);
+
+      console.log(
+        `✅ User logged in via ${provider}: ${user.email} from IP: ${clientIP}`
+      );
+
+      res.json({
+        message: "Social login successful",
+        user,
+        tokens: {
+          accessToken,
+          refreshToken,
+          expiresIn: JWT_EXPIRES_IN,
+        },
+      });
+    } catch (error) {
+      console.error("Social login error:", error);
+      res.status(500).json({
+        error: "Social login failed",
+        code: "SOCIAL_LOGIN_ERROR",
+      });
+    }
+  }
+);
+
 export default router;

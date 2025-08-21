@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -17,6 +18,7 @@ import {
 } from "@/components/ui/card";
 // import { Alert, AlertDescription } from '@/components/ui/alert' // Commented out due to utils dependency
 import { Eye, EyeOff, Mail, Lock, AlertCircle, Loader2 } from "lucide-react";
+import { signIn } from "next-auth/react";
 import { useLogin } from "@/lib/api";
 
 // Form validation schema
@@ -244,6 +246,7 @@ export default function Login() {
                   variant="outline"
                   disabled={loginMutation.isPending}
                   className="w-full"
+                  onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
                 >
                   <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
                     <path
@@ -287,14 +290,12 @@ export default function Login() {
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
                 Don&apos;t have an account?{" "}
-                <Button
-                  type="button"
-                  variant="link"
-                  className="text-blue-600 hover:text-blue-500 p-0 h-auto font-medium"
-                  disabled={loginMutation.isPending}
+                <Link
+                  href="/register"
+                  className="text-blue-600 hover:text-blue-500 font-medium"
                 >
                   Sign up here
-                </Button>
+                </Link>
               </p>
             </div>
           </CardContent>
