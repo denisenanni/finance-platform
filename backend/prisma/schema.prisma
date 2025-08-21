@@ -22,6 +22,7 @@ model User {
   avatarUrl         String?  @map("avatar_url")
   emailVerified     Boolean  @default(false)  @map("email_verified")
   virtualBalance    Decimal  @default(10000.00) @map("virtual_balance") @db.Decimal(15,2)
+  provider          String   @default("email") 
   
   // Basic security fields
   isActive          Boolean  @default(true) @map("is_active")
