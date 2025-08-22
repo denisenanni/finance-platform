@@ -38,7 +38,7 @@ FRONTEND_IMAGE_NAME="$DOCKER_USER/financeplatform-frontend"
 # --- Build and Push Backend Image ---
 echo "Building backend image: $BACKEND_IMAGE_NAME:$GIT_HASH"
 # Set the build context to the 'backend' directory
-docker build --no-cache -t "$BACKEND_IMAGE_NAME:$GIT_HASH" -f "$REPO_ROOT/backend/Dockerfile" "$REPO_ROOT/backend"
+docker build -t "$BACKEND_IMAGE_NAME:$GIT_HASH" -f "$REPO_ROOT/backend/Dockerfile" "$REPO_ROOT/backend"
 docker tag "$BACKEND_IMAGE_NAME:$GIT_HASH" "$BACKEND_IMAGE_NAME:latest"
 
 echo "Pushing backend tags ($GIT_HASH and latest)..."
@@ -48,7 +48,7 @@ docker push "$BACKEND_IMAGE_NAME:latest"
 # --- Build and Push Frontend Image ---
 echo "Building frontend image: $FRONTEND_IMAGE_NAME:$GIT_HASH"
 # Set the build context to the 'frontend' directory
-docker build --no-cache -t "$FRONTEND_IMAGE_NAME:$GIT_HASH" -f "$REPO_ROOT/frontend/Dockerfile" "$REPO_ROOT/frontend"
+docker build -t "$FRONTEND_IMAGE_NAME:$GIT_HASH" -f "$REPO_ROOT/frontend/Dockerfile" "$REPO_ROOT/frontend"
 docker tag "$FRONTEND_IMAGE_NAME:$GIT_HASH" "$FRONTEND_IMAGE_NAME:latest"
 
 echo "Pushing frontend tags ($GIT_HASH and latest)..."
