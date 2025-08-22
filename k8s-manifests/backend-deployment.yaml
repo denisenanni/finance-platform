@@ -12,6 +12,15 @@ spec:
       labels:
         app: backend
     spec:
+      initContainers:
+        - name: db-migrate
+          image: devdenise/financeplatform-backend:latest # Use the same image
+          command: ["yarn", "prisma:push"]
+          env:
+            - name: DATABASE_URL
+              value: postgresql://dev:dev123@postgres:5432/financeplatform
+            - name: PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK
+              value: "1"
       containers:
         - name: backend
           image: devdenise/financeplatform-backend:latest # Replace with your image tag
