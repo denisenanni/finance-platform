@@ -21,7 +21,7 @@ spec:
             - name: NODE_ENV
               value: development
             - name: NEXT_PUBLIC_API_URL
-              value: http://backend:3001
+              value: /api/
             - name: NEXT_PUBLIC_APP_URL
               value: http://localhost:3000
             - name: NEXTAUTH_URL

@@ -53,7 +53,7 @@ data:
         }
 
         location /api/ {
-            proxy_pass http://backend.financeplatform.svc.cluster.local:3001;
+            proxy_pass http://backend:3001;
             proxy_http_version 1.1;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection 'upgrade';

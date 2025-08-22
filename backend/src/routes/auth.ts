@@ -564,7 +564,7 @@ router.post("/refresh", async (req: Request, res: Response): Promise<void> => {
 
 /**
  * @swagger
- * /auth/me:
+ * /auth/session:
  *   get:
  *     summary: Get current user information
  *     tags: [Authentication]
@@ -577,7 +577,7 @@ router.post("/refresh", async (req: Request, res: Response): Promise<void> => {
  *         description: Unauthorized
  */
 router.get(
-  "/me",
+  "/session",
   authenticateToken,
   async (req: Request, res: Response): Promise<void> => {
     try {
