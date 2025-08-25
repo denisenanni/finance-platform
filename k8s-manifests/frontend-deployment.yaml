@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: devdenise/financeplatform-frontend:latest  # Replace with your built image tag
+          image: devdenise/financeplatform-frontend:latest # Replace with your built image tag
           ports:
             - containerPort: 3000
           env:
@@ -25,12 +25,22 @@ spec:
             - name: NEXT_PUBLIC_APP_URL
               value: http://localhost:3000
             - name: NEXTAUTH_URL
-              value: http://localhost:3000
+              value: http://localhost:8080
             - name: NEXTAUTH_SECRET
               valueFrom:
                 secretKeyRef:
                   name: frontend-secrets
                   key: nextauth-secret
+            - name: GOOGLE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: google-oauth
+                  key: client-id
+            - name: GOOGLE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: google-oauth
+                  key: client-secret
           readinessProbe:
             httpGet:
               path: /
@@ -43,4 +53,3 @@ spec:
               port: 3000
             initialDelaySeconds: 30
             periodSeconds: 30
-
