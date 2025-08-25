@@ -1,6 +1,8 @@
 # Stage 1: Base development image
 FROM node:20-slim AS development
 
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
 # Set working directory
 WORKDIR /app
 

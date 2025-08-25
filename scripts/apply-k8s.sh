@@ -35,9 +35,9 @@ open_browser() {
 # 3. Watch logs in background
 tail_logs() {
     echo "📋 Starting log tail in background..."
-    kubectl logs -f deployment/backend -n $NAMESPACE --prefix=true
+    kubectl logs -f -n $NAMESPACE deployment/backend --prefix=true &
     BACKEND_LOGS_PID=$!
-    kubectl logs -f deployment/frontend -n $NAMESPACE --prefix=true
+    kubectl logs -f -n $NAMESPACE deployment/frontend --prefix=true &
     FRONTEND_LOGS_PID=$!
 }
 
@@ -70,10 +70,32 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+if [ -f "../frontend/.env" ]; then
+    echo "📄 Loading environment variables from ../frontend/.env file..."
+    export $(grep -v '^#' ../frontend/.env | xargs)
+fi
+
+# Validate required environment variables
+if [ -z "$GOOGLE_CLIENT_ID" ] || [ -z "$GOOGLE_CLIENT_SECRET" ]; then
+    echo "❌ Error: GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables must be set"
+    echo ""
+    echo "Please either:"
+    echo "1. Create a .env file with:"
+    echo "   GOOGLE_CLIENT_ID=your-client-id"
+    echo "   GOOGLE_CLIENT_SECRET=your-client-secret"
+    echo ""
+    echo "2. Or set environment variables before running:"
+    echo "   export GOOGLE_CLIENT_ID='your-client-id'"
+    echo "   export GOOGLE_CLIENT_SECRET='your-client-secret'"
+    echo "   ./deploy.sh"
+    exit 1
+fi
+
+echo "✅ Google OAuth credentials loaded successfully"
+
 LOG_FILE="deploy.log"
 exec > >(tee -a "$LOG_FILE") 2>&1
 
-tail_logs
 
 NAMESPACE=financeplatform
 MANIFEST_DIR="../k8s-manifests"
@@ -95,6 +117,7 @@ NEXTAUTH_SECRET=$(openssl rand -base64 32)
 kubectl delete secret backend-secrets -n $NAMESPACE --ignore-not-found
 kubectl delete secret frontend-secrets -n $NAMESPACE --ignore-not-found
 kubectl delete secret nginx-ssl-secret -n $NAMESPACE --ignore-not-found
+kubectl delete secret google-oauth -n $NAMESPACE --ignore-not-found
 
 kubectl create secret generic backend-secrets \
   --from-literal=postgres-password=dev123 \
@@ -109,6 +132,11 @@ kubectl create secret generic frontend-secrets \
   --from-literal=NEXT_PUBLIC_API_URL=http://localhost:3000 \
   --from-literal=ANALYTICS_ID=your-analytics-id \
   --from-literal=nextauth-secret="$NEXTAUTH_SECRET" \
+  --namespace=$NAMESPACE
+
+  kubectl create secret generic google-oauth \
+  --from-literal=client-id="$GOOGLE_CLIENT_ID" \
+  --from-literal=client-secret="$GOOGLE_CLIENT_SECRET" \
   --namespace=$NAMESPACE
 
 # Create self-signed certificate for nginx (if files don't exist)
@@ -164,6 +192,8 @@ echo ""
 echo "📊 Deployment Status:"
 kubectl get pods -n $NAMESPACE
 echo ""
+
+tail_logs
 
 echo "🚀 Starting FinanceFlow development access..."
 kubectl port-forward -n $NAMESPACE svc/nginx 8080:80 &
