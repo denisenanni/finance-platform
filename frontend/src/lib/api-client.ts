@@ -14,6 +14,7 @@ import {
   Holding,
   Quiz,
   QuizAnswer,
+  ProfileResponse,
 } from "@/types/api";
 import axios, {
   AxiosInstance,
@@ -271,6 +272,11 @@ class ApiClient {
   // User endpoints
   async getCurrentUser(): Promise<User> {
     const response = await this.client.get<User>("/auth/me");
+    return response.data;
+  }
+
+  async getProfile(): Promise<ProfileResponse> {
+    const response = await this.client.get("/profile");
     return response.data;
   }
 

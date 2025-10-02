@@ -152,3 +152,33 @@ export interface QuizSubmission {
   quizId: string;
   answers: QuizAnswer[];
 }
+
+export interface ProfilePortfolio {
+  id: string;
+  name: string;
+  description: string | null;
+  totalValue: number;
+  totalCost: number;
+  totalReturn: number;
+  returnPercentage: number;
+  isDefault: boolean;
+  createdAt: string;
+}
+
+export interface ProfileStats {
+  totalValue: number;
+  totalReturn: number;
+  returnPercentage: number;
+}
+
+export interface ProfileSecurityContext {
+  lastAccess?: string;
+  tokenAge?: number;
+}
+
+export interface ProfileResponse {
+  user: User;
+  portfolios: Portfolio[];
+  stats: ProfileStats;
+  securityContext?: ProfileSecurityContext;
+}

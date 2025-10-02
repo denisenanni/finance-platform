@@ -1,5 +1,5 @@
-import NextAuth, { AuthOptions } from "next-auth"
-import GoogleProvider from "next-auth/providers/google"
+import NextAuth, { AuthOptions } from "next-auth";
+import GoogleProvider from "next-auth/providers/google";
 
 export const authOptions: AuthOptions = {
   providers: [
@@ -13,16 +13,19 @@ export const authOptions: AuthOptions = {
     async signIn({ user, account }) {
       if (account?.provider === "google") {
         try {
-          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/social-login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email: user.email,
-              name: user.name,
-              avatarUrl: user.image,
-              provider: "google",
-            }),
-          });
+          const res = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/auth/social-login`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email: user.email,
+                name: user.name,
+                avatarUrl: user.image,
+                provider: "google",
+              }),
+            }
+          );
 
           if (!res.ok) {
             const errorData = await res.json();
@@ -58,16 +61,18 @@ export const authOptions: AuthOptions = {
     async session({ session, token }) {
       // Send properties to the client
       session.accessToken = token.accessToken as string;
-      session.user = token.user as any; // You might want to type this properly
+      if (token.user) {
+        session.user = token.user;
+      }
       return session;
     },
   },
   pages: {
-    signIn: '/login',
-    error: '/login', // Redirect to login page on error
-  }
-}
+    signIn: "/login",
+    error: "/login", // Redirect to login page on error
+  },
+};
 
-const handler = NextAuth(authOptions)
+const handler = NextAuth(authOptions);
 
-export { handler as GET, handler as POST }
+export { handler as GET, handler as POST };

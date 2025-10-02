@@ -16,7 +16,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Eye, EyeOff, Mail, Lock, AlertCircle, Loader2, User } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  AlertCircle,
+  Loader2,
+  User,
+} from "lucide-react";
 import { signIn } from "next-auth/react";
 import { useRegister } from "@/lib/api";
 
@@ -29,9 +37,7 @@ const registerSchema = z
       .string()
       .min(1, "Email is required")
       .email("Please enter a valid email address"),
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters long"),
+    password: z.string().min(8, "Password must be at least 8 characters long"),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -73,6 +79,7 @@ export default function Register() {
       reset(); // Clear form on success
     } catch (error) {
       // Error is handled by the mutation's onError callback
+      console.error("Registration failed:", error);
     }
   };
 
@@ -82,7 +89,7 @@ export default function Register() {
 
   const getErrorMessage = (error: any): string => {
     if (!error) return "An unknown error occurred.";
-    if (typeof error === 'string') return error;
+    if (typeof error === "string") return error;
     if (error.response?.data?.error) return error.response.data.error;
     if (error.message) return error.message;
     return "An unexpected error occurred during registration.";
@@ -92,7 +99,9 @@ export default function Register() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">Create an account</h1>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Create an account
+          </h1>
           <p className="mt-2 text-sm text-gray-600">
             Start your journey with us today
           </p>
@@ -123,27 +132,56 @@ export default function Register() {
                   <Label htmlFor="firstName">First Name</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input id="firstName" placeholder="John" {...register("firstName")} className="pl-10" disabled={registerMutation.isPending} />
+                    <Input
+                      id="firstName"
+                      placeholder="John"
+                      {...register("firstName")}
+                      className="pl-10"
+                      disabled={registerMutation.isPending}
+                    />
                   </div>
-                  {errors.firstName && <p className="text-sm text-red-600">{errors.firstName.message}</p>}
+                  {errors.firstName && (
+                    <p className="text-sm text-red-600">
+                      {errors.firstName.message}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="lastName">Last Name</Label>
                   <div className="relative">
-                     <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input id="lastName" placeholder="Doe" {...register("lastName")} className="pl-10" disabled={registerMutation.isPending} />
+                    <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="lastName"
+                      placeholder="Doe"
+                      {...register("lastName")}
+                      className="pl-10"
+                      disabled={registerMutation.isPending}
+                    />
                   </div>
-                  {errors.lastName && <p className="text-sm text-red-600">{errors.lastName.message}</p>}
+                  {errors.lastName && (
+                    <p className="text-sm text-red-600">
+                      {errors.lastName.message}
+                    </p>
+                  )}
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
-                 <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input id="email" type="email" placeholder="john.doe@example.com" {...register("email")} className="pl-10" disabled={registerMutation.isPending} />
-                 </div>
-                {errors.email && <p className="text-sm text-red-600">{errors.email.message}</p>}
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="john.doe@example.com"
+                    {...register("email")}
+                    className="pl-10"
+                    disabled={registerMutation.isPending}
+                  />
+                </div>
+                {errors.email && (
+                  <p className="text-sm text-red-600">{errors.email.message}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -166,10 +204,18 @@ export default function Register() {
                     onClick={togglePasswordVisibility}
                     disabled={registerMutation.isPending}
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
-                {errors.password && <p className="text-sm text-red-600">{errors.password.message}</p>}
+                {errors.password && (
+                  <p className="text-sm text-red-600">
+                    {errors.password.message}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -185,10 +231,18 @@ export default function Register() {
                     disabled={registerMutation.isPending}
                   />
                 </div>
-                {errors.confirmPassword && <p className="text-sm text-red-600">{errors.confirmPassword.message}</p>}
+                {errors.confirmPassword && (
+                  <p className="text-sm text-red-600">
+                    {errors.confirmPassword.message}
+                  </p>
+                )}
               </div>
 
-              <Button type="submit" className="w-full !mt-6" disabled={registerMutation.isPending}>
+              <Button
+                type="submit"
+                className="w-full !mt-6"
+                disabled={registerMutation.isPending}
+              >
                 {registerMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -246,7 +300,10 @@ export default function Register() {
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
                 Already have an account?{" "}
-                <Link href="/login" className="text-blue-600 hover:text-blue-500 font-medium">
+                <Link
+                  href="/login"
+                  className="text-blue-600 hover:text-blue-500 font-medium"
+                >
                   Sign in
                 </Link>
               </p>
