@@ -165,26 +165,35 @@ class ApiClient {
   }
 
   // Token management methods
-  private getAccessToken(): string | null {
+  public getAccessToken(): string | null {
     if (typeof window === "undefined") return null;
-    return localStorage.getItem("access_token");
+    const cookies = document.cookie.split("; ");
+    const tokenCookie = cookies.find((row) => row.startsWith("access_token="));
+    return tokenCookie ? tokenCookie.split("=")[1] : null;
   }
 
   private getRefreshToken(): string | null {
     if (typeof window === "undefined") return null;
-    return localStorage.getItem("refresh_token");
+    const cookies = document.cookie.split("; ");
+    const tokenCookie = cookies.find((row) => row.startsWith("refresh_token="));
+    return tokenCookie ? tokenCookie.split("=")[1] : null;
   }
 
   private setTokens(accessToken: string, refreshToken: string): void {
     if (typeof window === "undefined") return;
-    localStorage.setItem("access_token", accessToken);
-    localStorage.setItem("refresh_token", refreshToken);
+    const expires = new Date();
+    expires.setDate(expires.getDate() + 7); // 7 days for refresh token
+    const accessTokenExpires = new Date();
+    accessTokenExpires.setHours(accessTokenExpires.getHours() + 1); // 1 hour for access token
+
+    document.cookie = `access_token=${accessToken};expires=${accessTokenExpires.toUTCString()};path=/;SameSite=Lax`;
+    document.cookie = `refresh_token=${refreshToken};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
   }
 
   private clearTokens(): void {
     if (typeof window === "undefined") return;
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
+    document.cookie = "access_token=; Max-Age=-99999999; path=/;";
+    document.cookie = "refresh_token=; Max-Age=-99999999; path=/;";
     localStorage.removeItem("auth_token"); // Legacy token cleanup
   }
 
