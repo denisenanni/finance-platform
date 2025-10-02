@@ -83,12 +83,10 @@ export const useLogout = (options?: UseMutationOptions<void, Error, void>) => {
 };
 
 export const useAuth = () => {
-  const accessToken =
-    typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
-
+  const token = apiClient.getAccessToken();
   return {
-    isAuthenticated: !!accessToken,
-    token: accessToken,
+    isAuthenticated: !!token,
+    token,
   };
 };
 
