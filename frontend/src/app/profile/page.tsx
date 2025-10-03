@@ -2,15 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
 import { apiClient } from "@/lib/api-client";
 import { ProfileResponse } from "@/types/api";
 import Link from "next/link";
 
 export default function Profile() {
   const router = useRouter();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { data: session, status } = useSession();
   const [profileData, setProfileData] = useState<ProfileResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,12 +20,8 @@ export default function Profile() {
   });
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/login");
-    } else if (status === "authenticated") {
-      fetchProfile();
-    }
-  }, [status, router]);
+    fetchProfile();
+  }, []);
 
   const fetchProfile = async () => {
     try {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/card";
 // import { Alert, AlertDescription } from '@/components/ui/alert' // Commented out due to utils dependency
 import { Eye, EyeOff, Mail, Lock, AlertCircle, Loader2 } from "lucide-react";
-import { signIn } from "next-auth/react";
 import { useLogin } from "@/lib/api";
 
 // Form validation schema
@@ -38,6 +37,38 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    const handleAuthMessage = (event: MessageEvent) => {
+      // Basic security check: ensure the message is from a trusted origin
+      if (
+        !process.env.NEXT_PUBLIC_API_URL?.startsWith(event.origin) &&
+        event.origin !== window.location.origin
+      ) {
+        console.warn("Received message from untrusted origin:", event.origin);
+        return;
+      }
+
+      const { type, success } = event.data;
+
+      if (type === "social-auth-callback" && success) {
+        // When social login is successful, redirect to the dashboard
+        router.push("/dashboard");
+      }
+    };
+
+    window.addEventListener("message", handleAuthMessage);
+
+    return () => {
+      window.removeEventListener("message", handleAuthMessage);
+    };
+  }, [router]);
+
+  const handleSocialLogin = (provider: "google" | "facebook") => {
+    const socialLoginUrl = `${process.env.NEXT_PUBLIC_API_URL}/auth/${provider}`;
+    // Open a new window for social login
+    window.open(socialLoginUrl, "_blank", "width=500,height=600");
+  };
 
   const loginMutation = useLogin({
     onSuccess: (data) => {
@@ -246,7 +277,7 @@ export default function Login() {
                   variant="outline"
                   disabled={loginMutation.isPending}
                   className="w-full"
-                  onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+                  onClick={() => handleSocialLogin("google")}
                 >
                   <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
                     <path
@@ -273,6 +304,7 @@ export default function Login() {
                   variant="outline"
                   disabled={loginMutation.isPending}
                   className="w-full"
+                  onClick={() => handleSocialLogin("facebook")}
                 >
                   <svg
                     className="w-4 h-4 mr-2"
