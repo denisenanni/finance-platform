@@ -172,6 +172,13 @@ kubectl apply -n $NAMESPACE -f $MANIFEST_DIR/backend-service.yaml
 echo "Waiting for Backend to be ready..."
 kubectl wait --namespace $NAMESPACE --for=condition=ready pod -l app=backend --timeout=120s
 
+
+echo "Deploying PF Admin instance"
+kubectl apply -n $NAMESPACE -f $MANIFEST_DIR/pgadmin-deployment.yaml
+kubectl apply -n $NAMESPACE -f $MANIFEST_DIR/pgadmin-service.yaml
+echo "Waiting for PG Admin to be ready..."
+kubectl wait --namespace $NAMESPACE --for=condition=ready pod -l app=pgadmin --timeout=120s
+
 echo "Deploying Frontend..."
 kubectl apply -n $NAMESPACE -f $MANIFEST_DIR/frontend-deployment.yaml
 kubectl apply -n $NAMESPACE -f $MANIFEST_DIR/frontend-service.yaml

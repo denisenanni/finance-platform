@@ -1,14 +1,15 @@
 "use client";
 
-import { Link } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { apiClient } from "@/lib/api-client";
 import { ProfileResponse } from "@/types/api";
+import Link from "next/link";
 
 export default function Profile() {
   const router = useRouter();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { data: session, status } = useSession();
   const [profileData, setProfileData] = useState<ProfileResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -32,7 +33,7 @@ export default function Profile() {
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      const data = await apiClient.getProfile(); // Much cleaner!
+      const data = await apiClient.getProfile();
       setProfileData(data);
       setFormData({
         firstName: data.user.firstName,

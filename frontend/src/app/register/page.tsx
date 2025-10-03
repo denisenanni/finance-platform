@@ -87,6 +87,7 @@ export default function Register() {
     setShowPassword(!showPassword);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const getErrorMessage = (error: any): string => {
     if (!error) return "An unknown error occurred.";
     if (typeof error === "string") return error;

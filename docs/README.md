@@ -101,3 +101,8 @@ Dalla root del progetto:
  kubectl port-forward -n financeplatform svc/pgadmin 8081:80 (to reach pgadmin) http://localhost:8081/browser/
  http://localhost:4000/api-docs/  
  http://localhost:8080/
+
+
+
+ TO FORWARD BE AND WORK LOCALLY ON FE: kubectl port-forward -n financeplatform svc/backend 3001:3001
+
