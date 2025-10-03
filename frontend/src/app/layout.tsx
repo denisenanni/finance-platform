@@ -1,6 +1,5 @@
 'use client';
 
-import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { usePathname } from 'next/navigation';
 import React, { useState } from 'react';
@@ -9,7 +8,6 @@ import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
 import Footer from '@/components/layout/Footer';
 import { QueryProvider } from './providers/QueryProvider';
-import { NextAuthProvider } from './providers/NextAuthProvider';
 
 import './globals.css';
 
@@ -53,24 +51,22 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <NextAuthProvider>
-          <QueryProvider>
-            {showLayout ? (
-              <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-                <Sidebar isCollapsed={isSidebarCollapsed} />
-                <div className="flex flex-1 flex-col overflow-hidden">
-                  <Header toggleSidebar={toggleSidebar} />
-                  <main className="flex-1 overflow-y-auto p-4 md:p-6">
-                    {children}
-                  </main>
-                  <Footer />
-                </div>
+        <QueryProvider>
+          {showLayout ? (
+            <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
+              <Sidebar isCollapsed={isSidebarCollapsed} />
+              <div className="flex flex-1 flex-col overflow-hidden">
+                <Header toggleSidebar={toggleSidebar} />
+                <main className="flex-1 overflow-y-auto p-4 md:p-6">
+                  {children}
+                </main>
+                <Footer />
               </div>
-            ) : (
-              children
-            )}
-          </QueryProvider>
-        </NextAuthProvider>
+            </div>
+          ) : (
+            children
+          )}
+        </QueryProvider>
       </body>
     </html>
   );
