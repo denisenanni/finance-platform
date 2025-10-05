@@ -1,58 +1,54 @@
-"use client";
+'use client';
 
-import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
-import { apiClient } from "@/lib/api-client";
-import { ProfileResponse } from "@/types/api";
-import Link from "next/link";
+import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { apiClient } from '@/lib/api-client';
+import { ProfileResponse } from '@/types/api';
+import Image from 'next/image';
+import Link from 'next/link';
 
-export default function Profile() {
-  const router = useRouter();
+// A component to render the main profile content
+function ProfileContent() {
+  const { user, logout } = useAuth(); // Assuming user object is now directly available
   const [profileData, setProfileData] = useState<ProfileResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
   const [isEditing, setIsEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState("portfolios");
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    bio: "",
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
+    avatarUrl: user?.avatarUrl || '',
   });
 
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  const fetchProfile = async () => {
+  const fetchProfileDetails = async () => {
     try {
       setLoading(true);
       const data = await apiClient.getProfile();
       setProfileData(data);
-      setFormData({
-        firstName: data.user.firstName,
-        lastName: data.user.lastName,
-        bio: "",
-      });
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-      console.error("Profile fetch error:", err);
+      setError(
+        err instanceof Error ? err.message : 'Failed to load profile details'
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const handleEdit = () => setIsEditing(true);
+  useEffect(() => {
+    fetchProfileDetails();
+  }, []);
 
+  const handleEdit = () => setIsEditing(true);
   const handleCancel = () => {
     setIsEditing(false);
-    if (profileData) {
-      setFormData({
-        firstName: profileData.user.firstName,
-        lastName: profileData.user.lastName,
-        bio: "",
-      });
-    }
+    setFormData({
+      firstName: user?.firstName || '',
+      lastName: user?.lastName || '',
+      avatarUrl: user?.avatarUrl || '',
+    });
   };
 
   const handleSave = async () => {
@@ -60,42 +56,34 @@ export default function Profile() {
       await apiClient.updateProfile({
         firstName: formData.firstName,
         lastName: formData.lastName,
+        avatarUrl: formData.avatarUrl,
       });
-
-      await fetchProfile();
+      // Re-fetch all profile data to ensure consistency
+      await fetchProfileDetails();
       setIsEditing(false);
     } catch (err) {
-      console.error("Profile update error:", err);
-      alert("Failed to update profile");
+      console.error('Profile update error:', err);
+      alert('Failed to update profile.');
     }
   };
 
   const getInitials = () => {
-    if (!profileData) return "??";
-    return `${profileData.user.firstName[0]}${profileData.user.lastName[0]}`;
+    if (!user) return '??';
+    return `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase();
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
     }).format(value);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <div className="spinner"></div>
-          <p className="mt-4 text-muted">Loading profile...</p>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="mt-4 text-gray-600">Loading full profile...</p>
         </div>
       </div>
     );
@@ -103,434 +91,233 @@ export default function Profile() {
 
   if (error || !profileData) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="card max-w-md">
-          <div className="text-center">
-            <h2 className="text-xl font-bold mb-4">Error Loading Profile</h2>
-            <p className="text-secondary mb-6">
-              {error || "Failed to load profile data"}
-            </p>
-            <button onClick={() => fetchProfile()} className="btn-primary">
-              Try Again
-            </button>
-          </div>
+      <div className="flex items-center justify-center h-full">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md text-center">
+          <span className="text-5xl">⚠️</span>
+          <h2 className="mt-4 text-xl font-bold text-gray-900">
+            Error Loading Profile Details
+          </h2>
+          <p className="mt-2 text-gray-600">{error}</p>
+          <button
+            onClick={fetchProfileDetails}
+            className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Try Again
+          </button>
         </div>
       </div>
     );
   }
 
+  // Main Profile JSX
   return (
-    <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
-      <div className="container space-y-6">
-        {/* Header Section */}
-        <div className="card">
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
-            {/* Avatar */}
-            <div
-              className="h-24 w-24 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg"
-              style={{
-                background:
-                  "linear-gradient(135deg, var(--primary), var(--primary-hover))",
-              }}
-            >
-              {getInitials()}
-            </div>
-
-            {/* User Info */}
-            <div className="flex-1 text-center md:text-left">
-              {isEditing ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label>First Name</label>
-                      <input
-                        type="text"
-                        value={formData.firstName}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            firstName: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label>Last Name</label>
-                      <input
-                        type="text"
-                        value={formData.lastName}
-                        onChange={(e) =>
-                          setFormData({ ...formData, lastName: e.target.value })
-                        }
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label>Bio</label>
-                    <textarea
-                      value={formData.bio}
-                      onChange={(e) =>
-                        setFormData({ ...formData, bio: e.target.value })
-                      }
-                      rows={3}
-                      placeholder="Tell us about your investment journey..."
-                    />
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <h1 className="text-3xl font-bold">
-                    {profileData.user.firstName} {profileData.user.lastName}
-                  </h1>
-                  <p className="text-secondary mt-1">
-                    {formData.bio || "No bio yet. Click edit to add one!"}
-                  </p>
-                  {profileData.user.emailVerified && (
-                    <span className="badge badge-success mt-2">Verified</span>
-                  )}
-                </>
-              )}
-
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-4 text-sm text-secondary">
-                <span>{profileData.user.email}</span>
-                <span>•</span>
-                <span>Joined {formatDate(profileData.user.createdAt)}</span>
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+          {/* Avatar */}
+          <div className="relative">
+            {user?.avatarUrl ? (
+              <Image
+                src={user.avatarUrl}
+                alt="Avatar"
+                width={96}
+                height={96}
+                className="rounded-full shadow-lg"
+              />
+            ) : (
+              <div className="h-24 w-24 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+                {getInitials()}
               </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-2">
-              {isEditing ? (
-                <>
-                  <button onClick={handleSave} className="btn-primary">
-                    Save
-                  </button>
-                  <button onClick={handleCancel} className="btn-secondary">
-                    Cancel
-                  </button>
-                </>
-              ) : (
-                <button onClick={handleEdit} className="btn-secondary">
-                  Edit Profile
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="card">
-            <p className="text-sm text-muted">Total Portfolio Value</p>
-            <p className="text-2xl font-bold mt-1">
-              {formatCurrency(profileData.stats.totalValue)}
-            </p>
+            )}
           </div>
 
-          <div className="card">
-            <p className="text-sm text-muted">Total Return</p>
-            <p
-              className={`text-2xl font-bold mt-1 ${
-                profileData.stats.totalReturn >= 0
-                  ? "text-success"
-                  : "text-error"
-              }`}
-            >
-              {profileData.stats.totalReturn >= 0 ? "+" : ""}
-              {formatCurrency(profileData.stats.totalReturn)}
-            </p>
-            <p
-              className={`text-sm ${
-                profileData.stats.returnPercentage >= 0
-                  ? "text-success"
-                  : "text-error"
-              }`}
-            >
-              {profileData.stats.returnPercentage >= 0 ? "+" : ""}
-              {profileData.stats.returnPercentage.toFixed(2)}%
-            </p>
-          </div>
-
-          <div className="card">
-            <p className="text-sm text-muted">Active Portfolios</p>
-            <p className="text-2xl font-bold mt-1">
-              {profileData.portfolios.length}
-            </p>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="card p-0">
-          <div style={{ borderBottom: "1px solid var(--border)" }}>
-            <nav className="flex -mb-px overflow-x-auto">
-              {["portfolios", "activity", "stats", "settings"].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`flex-1 min-w-max py-4 px-6 text-center font-medium text-sm capitalize transition-colors`}
-                  style={{
-                    borderBottom:
-                      activeTab === tab
-                        ? "2px solid var(--primary)"
-                        : "2px solid transparent",
-                    color:
-                      activeTab === tab
-                        ? "var(--primary)"
-                        : "var(--text-secondary)",
-                  }}
-                >
-                  {tab}
-                </button>
-              ))}
-            </nav>
-          </div>
-
-          <div className="p-6">
-            {/* Portfolios Tab */}
-            {activeTab === "portfolios" && (
+          {/* User Info */}
+          <div className="flex-1 text-center md:text-left">
+            {isEditing ? (
               <div className="space-y-4">
-                <div className="flex justify-between items-center mb-6">
-                  <div>
-                    <h2 className="text-xl font-bold">My Portfolios</h2>
-                    <p className="text-secondary text-sm">
-                      Manage and track your investment portfolios
-                    </p>
-                  </div>
-                  <Link href="/portfolios/create" className="btn-primary">
-                    Create Portfolio
-                  </Link>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <input
+                    type="text"
+                    placeholder="First Name"
+                    value={formData.firstName}
+                    onChange={(e) =>
+                      setFormData({ ...formData, firstName: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border rounded-md"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Last Name"
+                    value={formData.lastName}
+                    onChange={(e) =>
+                      setFormData({ ...formData, lastName: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border rounded-md"
+                  />
                 </div>
-
-                {profileData.portfolios.length === 0 ? (
-                  <div className="text-center py-12">
-                    <h3 className="text-lg font-semibold">No portfolios yet</h3>
-                    <p className="text-secondary mt-2">
-                      Create your first portfolio to start tracking your
-                      investments
-                    </p>
-                    <Link
-                      href="/portfolios/create"
-                      className="btn-primary mt-6 inline-block"
-                    >
-                      Create Your First Portfolio
-                    </Link>
-                  </div>
-                ) : (
-                  <>
-                    {profileData.portfolios.map((portfolio) => (
-                      <div
-                        key={portfolio.id}
-                        className="card cursor-pointer"
-                        onClick={() =>
-                          router.push(`/portfolios/${portfolio.id}`)
-                        }
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <h3 className="text-lg font-semibold">
-                                {portfolio.name}
-                              </h3>
-                              {portfolio.isDefault && (
-                                <span className="badge badge-success">
-                                  Default
-                                </span>
-                              )}
-                            </div>
-                            {portfolio.description && (
-                              <p className="text-sm text-secondary mt-1">
-                                {portfolio.description}
-                              </p>
-                            )}
-                            <div className="flex items-center gap-4 mt-3 text-sm text-secondary">
-                              <span>
-                                Value: {formatCurrency(portfolio.totalValue)}
-                              </span>
-                              <span>•</span>
-                              <span>
-                                Cost: {formatCurrency(portfolio.totalCost)}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="text-right ml-4">
-                            <p
-                              className={`text-lg font-bold ${
-                                portfolio.totalReturn >= 0
-                                  ? "text-success"
-                                  : "text-error"
-                              }`}
-                            >
-                              {portfolio.totalReturn >= 0 ? "+" : ""}
-                              {formatCurrency(portfolio.totalReturn)}
-                            </p>
-                            <p
-                              className={`text-sm ${
-                                portfolio.returnPercentage >= 0
-                                  ? "text-success"
-                                  : "text-error"
-                              }`}
-                            >
-                              {portfolio.returnPercentage >= 0 ? "+" : ""}
-                              {portfolio.returnPercentage.toFixed(2)}%
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </>
+                <input
+                  type="text"
+                  placeholder="Avatar URL"
+                  value={formData.avatarUrl}
+                  onChange={(e) =>
+                    setFormData({ ...formData, avatarUrl: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border rounded-md"
+                />
+              </div>
+            ) : (
+              <>
+                <h1 className="text-3xl font-bold text-gray-900">
+                  {user?.firstName} {user?.lastName}
+                </h1>
+                <p className="text-gray-600 mt-1">{user?.email}</p>
+                {user?.emailVerified && (
+                  <span className="inline-flex items-center mt-2 px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    ✓ Verified
+                  </span>
                 )}
-              </div>
+              </>
             )}
+          </div>
 
-            {/* Activity Tab */}
-            {activeTab === "activity" && (
-              <div className="text-center py-12">
-                <h3 className="text-lg font-semibold">Activity Coming Soon</h3>
-                <p className="text-secondary mt-2">
-                  Track your trades, achievements, and portfolio changes
-                </p>
-              </div>
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            {isEditing ? (
+              <>
+                <button
+                  onClick={handleSave}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="px-4 py-2 bg-gray-200 rounded-md"
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={handleEdit}
+                className="px-4 py-2 bg-gray-200 rounded-md"
+              >
+                Edit Profile
+              </button>
             )}
+            <button
+              onClick={logout}
+              className="px-4 py-2 bg-red-500 text-white rounded-md"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
 
-            {/* Stats Tab */}
-            {activeTab === "stats" && (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-xl font-bold mb-4">
-                    Performance Metrics
-                  </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div
-                      className="p-4 rounded-lg"
-                      style={{ backgroundColor: "var(--bg-tertiary)" }}
-                    >
-                      <p className="text-sm text-muted">Total Portfolios</p>
-                      <p className="text-2xl font-bold">
-                        {profileData.portfolios.length}
+      {/* Stats Section */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-medium text-gray-500">Total Value</h3>
+          <p className="text-3xl font-bold text-gray-900 mt-2">
+            {formatCurrency(profileData.stats.totalValue)}
+          </p>
+        </div>
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-medium text-gray-500">Total Return</h3>
+          <p
+            className={`text-3xl font-bold mt-2 ${
+              profileData.stats.totalReturn >= 0
+                ? 'text-green-600'
+                : 'text-red-600'
+            }`}
+          >
+            {formatCurrency(profileData.stats.totalReturn)}
+          </p>
+        </div>
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-medium text-gray-500">Return %</h3>
+          <p
+            className={`text-3xl font-bold mt-2 ${
+              profileData.stats.returnPercentage >= 0
+                ? 'text-green-600'
+                : 'text-red-600'
+            }`}
+          >
+            {profileData.stats.returnPercentage.toFixed(2)}%
+          </p>
+        </div>
+      </div>
+
+      {/* Portfolios Section */}
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">Portfolios</h2>
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <ul className="divide-y divide-gray-200">
+            {profileData.portfolios.map((portfolio) => (
+              <li key={portfolio.id} className="p-6 hover:bg-gray-50">
+                <Link href={`/portfolios/${portfolio.id}`} className="block">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-xl font-semibold text-blue-600">
+                        {portfolio.name}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {portfolio.description}
                       </p>
                     </div>
-                    <div
-                      className="p-4 rounded-lg"
-                      style={{ backgroundColor: "var(--bg-tertiary)" }}
-                    >
-                      <p className="text-sm text-muted">Average Return</p>
+                    <div className="text-right">
+                      <p className="text-xl font-bold">
+                        {formatCurrency(portfolio.totalValue)}
+                      </p>
                       <p
-                        className={`text-2xl font-bold ${
-                          profileData.stats.returnPercentage >= 0
-                            ? "text-success"
-                            : "text-error"
+                        className={`text-sm ${
+                          portfolio.totalReturn >= 0
+                            ? 'text-green-600'
+                            : 'text-red-600'
                         }`}
                       >
-                        {profileData.stats.returnPercentage >= 0 ? "+" : ""}
-                        {profileData.stats.returnPercentage.toFixed(2)}%
+                        {formatCurrency(portfolio.totalReturn)} (
+                        {portfolio.returnPercentage.toFixed(2)}%)
                       </p>
                     </div>
                   </div>
-                </div>
-
-                <hr />
-
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">
-                    More Analytics Coming Soon
-                  </h3>
-                  <p className="text-secondary">
-                    Advanced metrics like Sharpe ratio, volatility, and risk
-                    analysis will be available in future updates.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Settings Tab */}
-            {activeTab === "settings" && (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-xl font-bold mb-4">Account Settings</h2>
-                  <div className="space-y-4">
-                    <div className="card">
-                      <h3 className="font-semibold mb-2">Email Verification</h3>
-                      <p className="text-sm text-secondary">
-                        Status:{" "}
-                        {profileData.user.emailVerified ? (
-                          <span className="text-success font-medium">
-                            Verified
-                          </span>
-                        ) : (
-                          <span className="text-warning font-medium">
-                            Not Verified
-                          </span>
-                        )}
-                      </p>
-                    </div>
-
-                    <div className="card">
-                      <h3 className="font-semibold mb-2">Security</h3>
-                      <button
-                        className="text-sm font-medium"
-                        style={{ color: "var(--primary)" }}
-                      >
-                        Change Password
-                      </button>
-                    </div>
-
-                    <div
-                      className="card"
-                      style={{
-                        borderColor: "var(--error)",
-                        backgroundColor: "rgba(239, 68, 68, 0.05)",
-                      }}
-                    >
-                      <h3 className="font-semibold text-error mb-2">
-                        Danger Zone
-                      </h3>
-                      <button className="text-error text-sm font-medium">
-                        Delete Account
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
+      </div>
+    </div>
+  );
+}
 
-        {/* Quick Actions */}
-        <div className="card">
-          <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Link
-              href="/portfolios/create"
-              className="flex flex-col items-center justify-center p-6 rounded-lg transition-all"
-              style={{ border: "2px solid var(--border)" }}
-            >
-              <span className="text-3xl mb-2">💼</span>
-              <span className="text-sm font-medium">New Portfolio</span>
-            </Link>
-            <Link
-              href="/dashboard"
-              className="flex flex-col items-center justify-center p-6 rounded-lg transition-all"
-              style={{ border: "2px solid var(--border)" }}
-            >
-              <span className="text-3xl mb-2">📊</span>
-              <span className="text-sm font-medium">Dashboard</span>
-            </Link>
-            <button
-              className="flex flex-col items-center justify-center p-6 rounded-lg transition-all"
-              style={{ border: "2px solid var(--border)" }}
-            >
-              <span className="text-3xl mb-2">🎯</span>
-              <span className="text-sm font-medium">Take Quiz</span>
-            </button>
-            <button
-              className="flex flex-col items-center justify-center p-6 rounded-lg transition-all"
-              style={{ border: "2px solid var(--border)" }}
-            >
-              <span className="text-3xl mb-2">📈</span>
-              <span className="text-sm font-medium">Analytics</span>
-            </button>
-          </div>
-        </div>
+// A wrapper component to handle auth state
+export default function ProfilePage() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isAuthenticated, isLoading, router]);
+
+  if (isLoading || !isAuthenticated) {
+    // Show a loading spinner or a blank page while redirecting
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  // User is authenticated, render the main content
+  return (
+    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        <ProfileContent />
       </div>
     </div>
   );

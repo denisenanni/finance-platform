@@ -1,9 +1,15 @@
+import axios, {
+  AxiosInstance,
+  InternalAxiosRequestConfig,
+  AxiosError,
+} from 'axios';
+import Cookies from 'js-cookie';
 import {
   LoginRequest,
   AuthResponse,
   RegisterRequest,
-  RefreshTokenResponse,
   User,
+  ProfileResponse,
   Portfolio,
   CreatePortfolioRequest,
   Asset,
@@ -14,75 +20,54 @@ import {
   Holding,
   Quiz,
   QuizAnswer,
-  ProfileResponse,
-} from "@/types/api";
-import axios, {
-  AxiosInstance,
-  InternalAxiosRequestConfig,
-  AxiosError,
-} from "axios";
-
-interface RetryAxiosRequestConfig extends InternalAxiosRequestConfig {
-  _retry?: boolean;
-}
+} from '@/types/api';
 
 class ApiClient {
   private client: AxiosInstance;
-  private baseURL: string;
   private isRefreshing = false;
-  private failedQueue: Array<{
+  private failedQueue: {
     resolve: (value: unknown) => void;
-    reject: (error: Error) => void;
-  }> = [];
+    reject: (reason?: unknown) => void;
+  }[] = [];
 
   constructor(baseURL?: string) {
-    this.baseURL =
-      baseURL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
-
     this.client = axios.create({
-      baseURL: this.baseURL,
+      baseURL:
+        baseURL ||
+        process.env.NEXT_PUBLIC_API_URL ||
+        'http://localhost:4000/api',
       timeout: 10000,
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
+      withCredentials: true,
     });
 
-    // Request interceptor to add auth token
     this.client.interceptors.request.use(
       (config: InternalAxiosRequestConfig) => {
-        const token = this.getAccessToken();
+        const token = Cookies.get('accessToken');
         if (token) {
-          config.headers.set("Authorization", `Bearer ${token}`);
+          config.headers['Authorization'] = `Bearer ${token}`;
         }
         return config;
-      }
+      },
+      (error) => Promise.reject(error)
     );
 
-    // Response interceptor with auto-refresh functionality
     this.client.interceptors.response.use(
       (response) => response,
       async (error: AxiosError) => {
-        const originalRequest = error.config as
-          | RetryAxiosRequestConfig
-          | undefined;
+        const originalRequest = error.config as InternalAxiosRequestConfig & {
+          _retry?: boolean;
+        };
 
-        // Handle 401 errors (token expired)
-        if (
-          error.response?.status === 401 &&
-          originalRequest &&
-          !originalRequest._retry
-        ) {
-          // If we're already refreshing, queue this request
+        if (error.response?.status === 401 && !originalRequest._retry) {
           if (this.isRefreshing) {
             return new Promise((resolve, reject) => {
               this.failedQueue.push({ resolve, reject });
             })
-              .then(() => {
-                // Retry with new token
-                originalRequest.headers.set(
-                  "Authorization",
-                  `Bearer ${this.getAccessToken()}`
-                );
+              .then((token) => {
+                originalRequest.headers['Authorization'] = 'Bearer ' + token;
                 return this.client(originalRequest);
               })
               .catch((err) => {
@@ -90,213 +75,104 @@ class ApiClient {
               });
           }
 
-          // Mark this request as retry to prevent infinite loops
           originalRequest._retry = true;
           this.isRefreshing = true;
 
           try {
-            console.log("🔄 Access token expired, attempting refresh...");
-
-            const refreshToken = this.getRefreshToken();
-            if (!refreshToken) {
-              throw new Error("No refresh token available");
-            }
-
-            // Attempt to refresh the token
-            const response = await this.refreshTokens(refreshToken);
-
-            console.log("✅ Token refreshed successfully");
-
-            // Update stored tokens
-            this.setTokens(response.accessToken, response.refreshToken);
-
-            // Process all queued requests with new token
-            this.processQueue(null);
-
-            // Retry the original request with new token
-            originalRequest.headers.set(
-              "Authorization",
-              `Bearer ${response.accessToken}`
-            );
+            const newTokens = await this.refreshToken();
+            Cookies.set('accessToken', newTokens.accessToken, {
+              secure: true,
+              sameSite: 'strict',
+            });
+            originalRequest.headers['Authorization'] =
+              `Bearer ${newTokens.accessToken}`;
+            this.processQueue(null, newTokens.accessToken);
             return this.client(originalRequest);
           } catch (refreshError) {
-            console.error("Token refresh failed:", refreshError);
-
-            // Process queue with error
-            const error =
-              refreshError instanceof Error
-                ? refreshError
-                : new Error("Token refresh failed");
-            this.processQueue(error);
-
-            // Clear all tokens and redirect to login
-            this.clearTokens();
-
-            // Redirect to login page
-            if (typeof window !== "undefined") {
-              window.location.href = "/login";
-            }
-
+            this.processQueue(refreshError, null);
+            // Trigger logout in AuthContext
+            window.dispatchEvent(new Event('auth-error'));
             return Promise.reject(refreshError);
           } finally {
             this.isRefreshing = false;
           }
         }
 
-        // For other errors, just reject
         return Promise.reject(error);
       }
     );
   }
 
-  /**
-   * Process the queue of failed requests
-   */
-  private processQueue(error: Error | null): void {
-    this.failedQueue.forEach(({ resolve, reject }) => {
+  private processQueue(error: unknown, token: string | null = null) {
+    this.failedQueue.forEach((prom) => {
       if (error) {
-        reject(error);
+        prom.reject(error);
       } else {
-        resolve(undefined);
+        prom.resolve(token);
       }
     });
-
     this.failedQueue = [];
   }
 
-  // Token management methods
-  public getAccessToken(): string | null {
-    if (typeof window === "undefined") return null;
-    const cookies = document.cookie.split("; ");
-    const tokenCookie = cookies.find((row) => row.startsWith("access_token="));
-    return tokenCookie ? tokenCookie.split("=")[1] : null;
-  }
-
-  private getRefreshToken(): string | null {
-    if (typeof window === "undefined") return null;
-    const cookies = document.cookie.split("; ");
-    const tokenCookie = cookies.find((row) => row.startsWith("refresh_token="));
-    return tokenCookie ? tokenCookie.split("=")[1] : null;
-  }
-
-  private setTokens(accessToken: string, refreshToken: string): void {
-    if (typeof window === "undefined") return;
-    const expires = new Date();
-    expires.setDate(expires.getDate() + 7); // 7 days for refresh token
-    const accessTokenExpires = new Date();
-    accessTokenExpires.setHours(accessTokenExpires.getHours() + 1); // 1 hour for access token
-
-    document.cookie = `access_token=${accessToken};expires=${accessTokenExpires.toUTCString()};path=/;SameSite=Lax`;
-    document.cookie = `refresh_token=${refreshToken};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
-  }
-
-  private clearTokens(): void {
-    if (typeof window === "undefined") return;
-    document.cookie = "access_token=; Max-Age=-99999999; path=/;";
-    document.cookie = "refresh_token=; Max-Age=-99999999; path=/;";
-    localStorage.removeItem("auth_token"); // Legacy token cleanup
-  }
-
-  /**
-   * Check if user is authenticated
-   */
-  public isAuthenticated(): boolean {
-    return !!this.getAccessToken();
+  public clearFailedQueue() {
+    this.failedQueue.forEach((prom) => {
+      prom.reject(new Error('User logged out, request cancelled.'));
+    });
+    this.failedQueue = [];
   }
 
   // Auth endpoints
   async login(credentials: LoginRequest): Promise<AuthResponse> {
     const response = await this.client.post<AuthResponse>(
-      "/auth/login",
+      '/auth/login',
       credentials
     );
-
-    // Store tokens from response
-    if (response.data.tokens) {
-      this.setTokens(
-        response.data.tokens.accessToken,
-        response.data.tokens.refreshToken
-      );
-    }
-
     return response.data;
   }
 
   async register(userData: RegisterRequest): Promise<AuthResponse> {
     const response = await this.client.post<AuthResponse>(
-      "/auth/register",
+      '/auth/register',
       userData
     );
-
-    // Store tokens from response
-    if (response.data.tokens) {
-      this.setTokens(
-        response.data.tokens.accessToken,
-        response.data.tokens.refreshToken
-      );
-    }
-    return response.data;
-  }
-
-  /**
-   * Refresh access token using refresh token
-   */
-  async refreshTokens(refreshToken: string): Promise<RefreshTokenResponse> {
-    // Use a separate axios instance to avoid interceptor loops
-    const refreshClient = axios.create({
-      baseURL: this.baseURL,
-      timeout: 10000,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    const response = await refreshClient.post<RefreshTokenResponse>(
-      "/auth/refresh",
-      {
-        refreshToken,
-      }
-    );
-
     return response.data;
   }
 
   async logout(): Promise<void> {
-    try {
-      const refreshToken = this.getRefreshToken();
+    await this.client.post('/auth/logout');
+  }
 
-      // Call backend logout to blacklist tokens
-      await this.client.post("/auth/logout", {
-        refreshToken,
-      });
-    } catch (error) {
-      console.error("Logout API call failed:", error);
-      // Continue with local cleanup even if API call fails
-    } finally {
-      // Always clear local tokens
-      this.clearTokens();
+  async refreshToken(): Promise<{ accessToken: string }> {
+    const refreshToken = Cookies.get('refreshToken');
+    if (!refreshToken) {
+      throw new Error('No refresh token available');
     }
+    const response = await this.client.post<{ accessToken: string }>(
+      '/auth/refresh',
+      { refreshToken }
+    );
+    return response.data;
   }
 
   // User endpoints
   async getCurrentUser(): Promise<User> {
-    const response = await this.client.get<User>("/auth/me");
+    const response = await this.client.get<User>('/auth/me');
     return response.data;
   }
 
   async getProfile(): Promise<ProfileResponse> {
-    const response = await this.client.get("/profile");
+    const response = await this.client.get<ProfileResponse>('/profile');
     return response.data;
   }
 
   async updateProfile(userData: Partial<User>): Promise<User> {
-    const response = await this.client.patch<User>("/profile", userData);
+    const response = await this.client.patch<User>('/profile', userData);
     return response.data;
   }
 
   // Portfolio endpoints
   async getPortfolios(): Promise<Portfolio[]> {
-    const response = await this.client.get<Portfolio[]>("/portfolios");
+    const response = await this.client.get<Portfolio[]>('/portfolios');
     return response.data;
   }
 
@@ -309,7 +185,7 @@ class ApiClient {
     portfolioData: CreatePortfolioRequest
   ): Promise<Portfolio> {
     const response = await this.client.post<Portfolio>(
-      "/portfolios",
+      '/portfolios',
       portfolioData
     );
     return response.data;
@@ -335,7 +211,7 @@ class ApiClient {
     search?: string;
     type?: string;
   }): Promise<Asset[]> {
-    const response = await this.client.get<Asset[]>("/assets", { params });
+    const response = await this.client.get<Asset[]>('/assets', { params });
     return response.data;
   }
 
@@ -353,8 +229,8 @@ class ApiClient {
   }
 
   async getMultipleMarketData(symbols: string[]): Promise<MarketData[]> {
-    const response = await this.client.get<MarketData[]>("/market-data", {
-      params: { symbols: symbols.join(",") },
+    const response = await this.client.get<MarketData[]>('/market-data', {
+      params: { symbols: symbols.join(',') },
     });
     return response.data;
   }
@@ -362,14 +238,14 @@ class ApiClient {
   // Trading endpoints
   async executeTrade(tradeData: TradeRequest): Promise<TradeExecutionResponse> {
     const response = await this.client.post<TradeExecutionResponse>(
-      "/trades",
+      '/trades',
       tradeData
     );
     return response.data;
   }
 
   async getTradeHistory(portfolioId?: string): Promise<Trade[]> {
-    const response = await this.client.get<Trade[]>("/trades", {
+    const response = await this.client.get<Trade[]>('/trades', {
       params: portfolioId ? { portfolioId } : undefined,
     });
     return response.data;
@@ -393,7 +269,7 @@ class ApiClient {
     category?: string;
     difficulty?: string;
   }): Promise<Quiz[]> {
-    const response = await this.client.get<Quiz[]>("/quizzes", { params });
+    const response = await this.client.get<Quiz[]>('/quizzes', { params });
     return response.data;
   }
 
@@ -413,10 +289,9 @@ class ApiClient {
   }
 
   async getDailyQuiz(): Promise<Quiz> {
-    const response = await this.client.get<Quiz>("/quizzes/daily");
+    const response = await this.client.get<Quiz>('/quizzes/daily');
     return response.data;
   }
 }
 
-// Create singleton instance
 export const apiClient = new ApiClient();

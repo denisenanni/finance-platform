@@ -1,60 +1,78 @@
-"use client";
+'use client';
 
-import { useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-
-// Helper to set cookies
-const setCookie = (name: string, value: string, days: number) => {
-  const expires = new Date();
-  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
-  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
-};
+import { useEffect, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 
 function AuthCallback() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { login } = useAuth();
 
   useEffect(() => {
-    const accessToken = searchParams.get("accessToken");
-    const refreshToken = searchParams.get("refreshToken");
-    const error = searchParams.get("error");
+    const accessToken = searchParams.get('accessToken');
+    const refreshToken = searchParams.get('refreshToken');
+    const error = searchParams.get('error');
 
     if (error) {
-      console.error("Social login error:", error);
-      // Notify the parent window of the failure
-      window.opener?.postMessage({ type: "social-auth-callback", success: false, error }, "*");
-      window.close();
+      console.error('Social login error:', error);
+      // Redirect to login page with an error query param
+      router.push(`/login?error=${encodeURIComponent(error)}`);
       return;
     }
 
     if (accessToken && refreshToken) {
-      // Store tokens in cookies
-      setCookie("access_token", accessToken, 1 / 24); // 1 hour
-      setCookie("refresh_token", refreshToken, 7); // 7 days
+      // The login function from AuthContext handles setting cookies and fetching the user
+      login(accessToken, refreshToken);
 
-      // Notify the parent window of success
-      window.opener?.postMessage({ type: "social-auth-callback", success: true }, "*");
-      window.close();
+      const callbackUrl = sessionStorage.getItem('callbackUrl');
+      sessionStorage.removeItem('callbackUrl'); // Clean up
+      router.push(callbackUrl || '/profile'); // Redirect to callbackUrl or default
+    } else {
+      // Handle the case where tokens are missing without an explicit error
+      console.error('Authentication failed: Tokens not found in callback.');
+      router.push('/login?error=authentication_failed');
     }
-  }, [searchParams]);
+  }, [searchParams, router, login]);
 
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: '100vh',
-      fontFamily: 'sans-serif'
-    }}>
-      <p>Authenticating, please wait...</p>
-      <p>This window will close automatically.</p>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        fontFamily: 'sans-serif',
+        backgroundColor: '#f0f2f5',
+        color: '#333',
+      }}
+    >
+      <p style={{ fontSize: '1.2rem', marginBottom: '1rem' }}>
+        Finalizing authentication, please wait...
+      </p>
+      <p>You will be redirected shortly.</p>
     </div>
   );
 }
 
 export default function AuthCallbackPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    // Suspense is required when using useSearchParams in a page rendered with server-side rendering
+    <Suspense
+      fallback={
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100vh',
+          }}
+        >
+          Loading...
+        </div>
+      }
+    >
       <AuthCallback />
     </Suspense>
   );
