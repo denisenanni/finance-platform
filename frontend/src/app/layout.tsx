@@ -1,25 +1,27 @@
-'use client';
+"use client";
 
-import { Geist, Geist_Mono } from 'next/font/google';
-import { usePathname } from 'next/navigation';
-import React, { useState } from 'react';
+import { Geist, Geist_Mono } from "next/font/google";
+import { usePathname } from "next/navigation";
+import React, { useState } from "react";
 
-import Header from '@/components/layout/Header';
-import Sidebar from '@/components/layout/Sidebar';
-import Footer from '@/components/layout/Footer';
-import { QueryProvider } from './providers/QueryProvider';
-import { AuthProvider } from '@/context/AuthContext';
+import Header from "@/components/layout/Header";
+import Sidebar from "@/components/layout/Sidebar";
+import Footer from "@/components/layout/Footer";
+import { QueryProvider } from "./providers/QueryProvider";
+import { AuthProvider } from "@/context/AuthContext";
 
-import './globals.css';
+import "./globals.css";
+import "./dark-theme.css";
+import "./light-theme.css";
 
 const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
 });
 
 const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
 });
 
 // Metadata can't be exported from a client component.
@@ -44,7 +46,7 @@ export default function RootLayout({
   };
 
   // Define routes that should not have the main dashboard layout
-  const noLayoutRoutes = ['/login', '/register'];
+  const noLayoutRoutes = ["/login", "/register"];
   const showLayout = !noLayoutRoutes.includes(pathname);
 
   return (

@@ -23,14 +23,44 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 const isProduction = process.env.NODE_ENV === "production";
 
+// SERVER STARTUP
 // ============================================================================
+
+app.listen(Number(PORT), "0.0.0.0", () => {
+  console.log(`🚀 FinanceSkills Hub API running on port ${PORT}`);
+  console.log(
+    `🔒 Security Mode: ${isProduction ? "PRODUCTION" : "DEVELOPMENT"}`
+  );
+  console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
+  console.log(`🔍 Health Check: http://localhost:${PORT}/health`);
+  console.log(`🔐 Auth Endpoints:`);
+  console.log(`   • POST /api/auth/register`);
+  console.log(`   • POST /api/auth/login`);
+  console.log(`   • POST /api/auth/refresh`);
+  console.log(`   • GET /api/auth/me`);
+  console.log(`   • POST /api/auth/logout`);
+  console.log(`   • POST /api/auth/change-password`);
+  console.log(`👤 Profile Endpoints:`);
+  console.log(`   • GET /api/profile (protected)`);
+  console.log(`   • PUT /api/profile (protected)`);
+  console.log(`📈 Market Data:`);
+  console.log(`   • GET /api/assets`);
+  console.log(`   • GET /api/market-data/quote/:symbol`);
+
+  if (!isProduction) {
+    console.log(`🛠️ Development Security Endpoints:`);
+    console.log(`   • GET /security/stats`);
+    console.log(`   • POST /dev/security/clear`);
+    console.log(`   • POST /dev/security/block-ip`);
+  }
+});
+
+export default app;
 // SECURITY CONFIGURATION
 // ============================================================================
 
-// Trust proxy for accurate IP addresses (important for rate limiting)
 app.set("trust proxy", 1);
 
-// Helmet for security headers
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -46,9 +76,8 @@ app.use(
   })
 );
 
-// Global rate limiting
 const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: isProduction ? 100 : 1000,
   message: {
     error: "Too many requests from this IP",
@@ -67,7 +96,6 @@ app.use(globalLimiter);
 
 const getAllowedOrigins = (): string[] => {
   const origins = new Set<string>([
-    // Default origins for local development
     "http://localhost:3000",
     "http://localhost:4000",
     "http://127.0.0.1:3000",
@@ -81,8 +109,8 @@ const getAllowedOrigins = (): string[] => {
     process.env.FRONTEND_URL,
     process.env.ADDITIONAL_ORIGINS,
   ]
-    .filter(Boolean) // Remove undefined/null/empty strings
-    .join(","); // Join them all into a single string
+    .filter(Boolean)
+    .join(",");
 
   fromEnv
     .split(",")
@@ -95,13 +123,11 @@ const getAllowedOrigins = (): string[] => {
 
 const allowedOrigins = getAllowedOrigins();
 
-// Log allowed origins for easier debugging
 console.log("✅ Allowed CORS origins:", allowedOrigins);
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
 
       if (allowedOrigins.includes(origin)) {
@@ -126,7 +152,6 @@ app.use(
   express.json({
     limit: "10mb",
     verify: (req, res, buf) => {
-      // Validate JSON payload
       try {
         JSON.parse(buf.toString());
       } catch (e) {
@@ -149,20 +174,15 @@ app.use(
 // SECURITY MIDDLEWARE
 // ============================================================================
 
-// Additional security headers
 app.use((req: Request, res: Response, next: NextFunction) => {
   res.header("X-Content-Type-Options", "nosniff");
   res.header("X-Frame-Options", "DENY");
   res.header("X-XSS-Protection", "1; mode=block");
   res.header("Referrer-Policy", "strict-origin-when-cross-origin");
-
-  // Remove server header
   res.removeHeader("X-Powered-By");
-
   next();
 });
 
-// Security logging middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
   const startTime = Date.now();
 
@@ -178,7 +198,6 @@ app.use((req: Request, res: Response, next: NextFunction) => {
         ?.substring(0, 50)}`
     );
 
-    // Log suspicious activity
     if (res.statusCode === 401 || res.statusCode === 403) {
       console.warn(
         `🚨 Security Event - ${res.statusCode} ${req.method} ${req.path} from ${req.ip}`
@@ -195,7 +214,6 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs, swaggerConfig));
 
-// Redirect root to API docs
 app.get("/", (req: Request, res: Response) => {
   res.redirect("/api-docs");
 });
@@ -209,10 +227,34 @@ app.get("/", (req: Request, res: Response) => {
  * /health:
  *   get:
  *     summary: Health check endpoint
+ *     description: Returns the current health status of the API service
  *     tags: [System]
  *     responses:
  *       200:
- *         description: Service is healthy
+ *         description: Service is healthy and operational
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: OK
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *                 service:
+ *                   type: string
+ *                   example: FinanceSkills Hub API
+ *                 version:
+ *                   type: string
+ *                   example: 1.0.0
+ *                 environment:
+ *                   type: string
+ *                   example: development
+ *                 uptime:
+ *                   type: number
+ *                   description: Server uptime in seconds
  */
 app.get("/health", (req: Request, res: Response) => {
   res.status(200).json({
@@ -226,10 +268,19 @@ app.get("/health", (req: Request, res: Response) => {
 });
 
 /**
- * Security stats endpoint (admin only in production)
+ * @swagger
+ * /security/stats:
+ *   get:
+ *     summary: Get security statistics (Development only)
+ *     description: Returns security statistics including rate limiting and blocked IPs. Only available in development mode.
+ *     tags: [System]
+ *     responses:
+ *       200:
+ *         description: Security statistics retrieved successfully
+ *       404:
+ *         description: Endpoint not available in production
  */
 const securityStats = (req: Request, res: Response): void => {
-  // In production, you should protect this with admin authentication
   if (isProduction) {
     res.status(404).json({ error: "Not found" });
     return;
@@ -249,15 +300,91 @@ const apiRouter = express.Router();
 // Authentication routes
 apiRouter.use("/auth", authRoutes);
 
-// Protected routes
+// ============================================================================
+// PROFILE ENDPOINTS
+// ============================================================================
+
 /**
  * @swagger
- * /profile:
+ * /api/profile:
  *   get:
  *     summary: Get user profile
+ *     description: Retrieve the authenticated user's complete profile including portfolios, stats, and security context
  *     tags: [User Profile]
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Profile retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *                 portfolios:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                       description:
+ *                         type: string
+ *                       totalValue:
+ *                         type: number
+ *                       totalCost:
+ *                         type: number
+ *                       totalReturn:
+ *                         type: number
+ *                       returnPercentage:
+ *                         type: number
+ *                       isDefault:
+ *                         type: boolean
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                 stats:
+ *                   type: object
+ *                   properties:
+ *                     totalValue:
+ *                       type: number
+ *                       description: Combined value of all portfolios
+ *                     totalReturn:
+ *                       type: number
+ *                       description: Total profit/loss across all portfolios
+ *                     returnPercentage:
+ *                       type: number
+ *                       description: Overall return percentage
+ *                 securityContext:
+ *                   type: object
+ *                   properties:
+ *                     lastAccess:
+ *                       type: string
+ *                       format: date-time
+ *                     tokenAge:
+ *                       type: number
+ *       401:
+ *         description: Unauthorized - Invalid or missing authentication token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Forbidden - Email verification required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 apiRouter.get(
   "/profile",
@@ -265,7 +392,6 @@ apiRouter.get(
   requireEmailVerification,
   async (req: Request, res: Response) => {
     try {
-      // Get user's portfolios with security context logging
       console.log(`📊 Profile accessed - User: ${req.user!.id}, IP: ${req.ip}`);
 
       const portfolios = await prisma.portfolio.findMany({
@@ -283,7 +409,6 @@ apiRouter.get(
         },
       });
 
-      // Calculate total stats
       const totalValue = portfolios.reduce(
         (sum: number, p: any) => sum + Number(p.totalValue),
         0
@@ -321,9 +446,80 @@ apiRouter.get(
 
 /**
  * @swagger
- * /profile:
+ * /api/profile:
  *   put:
  *     summary: Update user profile
+ *     description: Update the authenticated user's profile information (firstName and lastName)
+ *     tags: [User Profile]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *                 maxLength: 50
+ *                 description: User's first name
+ *                 example: John
+ *               lastName:
+ *                 type: string
+ *                 maxLength: 50
+ *                 description: User's last name
+ *                 example: Doe
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 firstName:
+ *                   type: string
+ *                 lastName:
+ *                   type: string
+ *                 virtualBalance:
+ *                   type: number
+ *                 emailVerified:
+ *                   type: boolean
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
+ *                 updatedAt:
+ *                   type: string
+ *                   format: date-time
+ *       400:
+ *         description: Invalid input - firstName or lastName exceeds maximum length or has invalid format
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized - Invalid or missing authentication token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Forbidden - Email verification required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 apiRouter.put(
   "/profile",
@@ -331,9 +527,8 @@ apiRouter.put(
   requireEmailVerification,
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const { firstName, lastName, avatarUrl } = req.body;
+      const { firstName, lastName } = req.body;
 
-      // Input validation
       if (
         firstName &&
         (typeof firstName !== "string" || firstName.length > 50)
@@ -353,17 +548,6 @@ apiRouter.put(
         return;
       }
 
-      if (
-        avatarUrl &&
-        (typeof avatarUrl !== "string" || !avatarUrl.startsWith("http"))
-      ) {
-        res.status(400).json({
-          error: "Invalid avatarUrl",
-          code: "INVALID_INPUT",
-        });
-        return;
-      }
-
       console.log(`✏️ Profile update - User: ${req.user!.id}, IP: ${req.ip}`);
 
       const updatedUser = await prisma.user.update({
@@ -371,7 +555,6 @@ apiRouter.put(
         data: {
           ...(firstName && { firstName }),
           ...(lastName && { lastName }),
-          ...(avatarUrl && { avatarUrl }),
           updatedAt: new Date(),
         },
         select: {
@@ -379,7 +562,6 @@ apiRouter.put(
           email: true,
           firstName: true,
           lastName: true,
-          avatarUrl: true,
           virtualBalance: true,
           emailVerified: true,
           createdAt: true,
@@ -398,7 +580,10 @@ apiRouter.put(
   }
 );
 
-// Public API routes
+// ============================================================================
+// ASSET & MARKET DATA ENDPOINTS
+// ============================================================================
+
 const publicApiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: isProduction ? 200 : 1000,
@@ -410,9 +595,77 @@ const publicApiLimiter = rateLimit({
 
 /**
  * @swagger
- * /assets:
+ * /api/assets:
  *   get:
- *     summary: Get all assets
+ *     summary: Get all available assets
+ *     description: Retrieve a list of active assets with optional filtering by type and search term. Limited to 50 results.
+ *     tags: [Assets]
+ *     parameters:
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [STOCK, CRYPTO, ETF, BOND]
+ *         description: Filter assets by type
+ *         example: STOCK
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *           maxLength: 100
+ *         description: Search assets by symbol or name (case-insensitive)
+ *         example: Apple
+ *     responses:
+ *       200:
+ *         description: Assets retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                     description: Unique asset identifier
+ *                   symbol:
+ *                     type: string
+ *                     description: Asset ticker symbol
+ *                     example: AAPL
+ *                   name:
+ *                     type: string
+ *                     description: Full asset name
+ *                     example: Apple Inc.
+ *                   assetType:
+ *                     type: string
+ *                     enum: [STOCK, CRYPTO, ETF, BOND]
+ *                     example: STOCK
+ *                   exchange:
+ *                     type: string
+ *                     description: Exchange where asset is traded
+ *                     example: NASDAQ
+ *                   sector:
+ *                     type: string
+ *                     description: Industry sector
+ *                     example: Technology
+ *       400:
+ *         description: Invalid request parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       429:
+ *         description: Rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 apiRouter.get(
   "/assets",
@@ -421,7 +674,6 @@ apiRouter.get(
     try {
       const { type, search } = req.query;
 
-      // Input validation
       if (
         type &&
         !["STOCK", "CRYPTO", "ETF", "BOND"].includes(type as string)
@@ -465,7 +717,7 @@ apiRouter.get(
           exchange: true,
           sector: true,
         },
-        take: 50, // Limit results
+        take: 50,
       });
 
       res.json(assets);
@@ -479,14 +731,105 @@ apiRouter.get(
   }
 );
 
-// Market data endpoint with enhanced validation
+/**
+ * @swagger
+ * /api/market-data/quote/{symbol}:
+ *   get:
+ *     summary: Get real-time market quote for an asset
+ *     description: Retrieve current market data including price, volume, and 24h change for a specific asset symbol
+ *     tags: [Market Data]
+ *     parameters:
+ *       - in: path
+ *         name: symbol
+ *         required: true
+ *         schema:
+ *           type: string
+ *           pattern: '^[A-Za-z0-9]+$'
+ *           maxLength: 10
+ *         description: Asset ticker symbol (alphanumeric, max 10 characters)
+ *         example: AAPL
+ *     responses:
+ *       200:
+ *         description: Market quote retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 symbol:
+ *                   type: string
+ *                   example: AAPL
+ *                 price:
+ *                   type: number
+ *                   format: float
+ *                   description: Current market price
+ *                   example: 175.43
+ *                 change24h:
+ *                   type: number
+ *                   format: float
+ *                   description: 24-hour price change in dollars
+ *                   example: 2.15
+ *                 changePercent24h:
+ *                   type: number
+ *                   format: float
+ *                   description: 24-hour price change percentage
+ *                   example: 1.24
+ *                 volume:
+ *                   type: number
+ *                   description: 24-hour trading volume
+ *                   example: 45231000
+ *                 marketCap:
+ *                   type: number
+ *                   description: Total market capitalization
+ *                   example: 2750000000000
+ *                 high24h:
+ *                   type: number
+ *                   format: float
+ *                   description: 24-hour high price
+ *                   example: 178.9
+ *                 low24h:
+ *                   type: number
+ *                   format: float
+ *                   description: 24-hour low price
+ *                   example: 173.2
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *                   description: Timestamp of the quote
+ *       400:
+ *         description: Invalid symbol format
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               error: Invalid symbol format
+ *               code: INVALID_SYMBOL
+ *               details: Symbol must be alphanumeric and max 10 characters
+ *       404:
+ *         description: Asset not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               error: Asset not found
+ *               code: ASSET_NOT_FOUND
+ *               details:
+ *                 symbol: XYZ
+ *       429:
+ *         description: Rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 apiRouter.get(
   "/market-data/quote/:symbol",
   publicApiLimiter,
   (req: Request, res: Response) => {
     const { symbol } = req.params;
 
-    // Input validation
     if (
       !symbol ||
       typeof symbol !== "string" ||
@@ -542,7 +885,6 @@ apiRouter.get(
   }
 );
 
-// Mount the master API router
 app.use("/api", apiRouter);
 
 // ============================================================================
@@ -550,12 +892,53 @@ app.use("/api", apiRouter);
 // ============================================================================
 
 if (!isProduction) {
-  // Security management endpoints for development
+  /**
+   * @swagger
+   * /dev/security/clear:
+   *   post:
+   *     summary: Clear security data (Development only)
+   *     description: Clears all security tracking data including rate limits and blocked IPs
+   *     tags: [Development]
+   *     responses:
+   *       200:
+   *         description: Security data cleared successfully
+   */
   app.post("/dev/security/clear", (req: Request, res: Response) => {
     clearSecurityData();
     res.json({ message: "Security data cleared" });
   });
 
+  /**
+   * @swagger
+   * /dev/security/block-ip:
+   *   post:
+   *     summary: Block an IP address (Development only)
+   *     description: Manually block an IP address for testing purposes
+   *     tags: [Development]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - ip
+   *             properties:
+   *               ip:
+   *                 type: string
+   *                 description: IP address to block
+   *                 example: 192.168.1.1
+   *               duration:
+   *                 type: number
+   *                 description: Block duration in minutes
+   *                 default: 30
+   *                 example: 60
+   *     responses:
+   *       200:
+   *         description: IP blocked successfully
+   *       400:
+   *         description: IP address required
+   */
   app.post("/dev/security/block-ip", (req: Request, res: Response) => {
     const { ip, duration } = req.body;
     if (!ip) {
@@ -571,7 +954,21 @@ if (!isProduction) {
 // API SPECIFICATION
 // ============================================================================
 
-// Serve OpenAPI spec as JSON
+/**
+ * @swagger
+ * /api-spec:
+ *   get:
+ *     summary: Get OpenAPI specification
+ *     description: Returns the complete OpenAPI specification in JSON format
+ *     tags: [System]
+ *     responses:
+ *       200:
+ *         description: OpenAPI specification
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ */
 app.get("/api-spec", (req: Request, res: Response) => {
   res.setHeader("Content-Type", "application/json");
   res.send(specs);
@@ -581,7 +978,6 @@ app.get("/api-spec", (req: Request, res: Response) => {
 // ERROR HANDLING
 // ============================================================================
 
-// 404 handler with security logging
 app.use("*", (req: Request, res: Response) => {
   console.warn(`🚫 404 - ${req.method} ${req.originalUrl} from IP: ${req.ip}`);
   res.status(404).json({
@@ -591,11 +987,9 @@ app.use("*", (req: Request, res: Response) => {
   });
 });
 
-// Global error handler with security considerations
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-  const errorId = Date.now().toString(36); // Simple error ID for tracking
+  const errorId = Date.now().toString(36);
 
-  // Log error with context
   console.error(`🚨 Error ${errorId}:`, {
     error: err.message,
     stack: err.stack,
@@ -606,16 +1000,13 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     userId: req.user?.id || "anonymous",
   });
 
-  // Different error responses based on environment
   if (isProduction) {
-    // Production: Don't leak error details
     res.status(500).json({
       error: "Internal Server Error",
       code: "INTERNAL_ERROR",
-      errorId: errorId, // For support tracking
+      errorId: errorId,
     });
   } else {
-    // Development: Include error details
     res.status(500).json({
       error: "Internal Server Error",
       message: err.message,
@@ -641,36 +1032,3 @@ process.on("SIGINT", () => {
 });
 
 // ============================================================================
-// SERVER STARTUP
-// ============================================================================
-
-app.listen(Number(PORT), "0.0.0.0", () => {
-  console.log(`🚀 FinanceSkills Hub API running on port ${PORT}`);
-  console.log(
-    `🔒 Security Mode: ${isProduction ? "PRODUCTION" : "DEVELOPMENT"}`
-  );
-  console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
-  console.log(`🔍 Health Check: http://localhost:${PORT}/health`);
-  console.log(`🔐 Auth Endpoints:`);
-  console.log(`   • POST /api/auth/register`);
-  console.log(`   • POST /api/auth/login`);
-  console.log(`   • POST /api/auth/refresh`);
-  console.log(`   • GET /api/auth/me`);
-  console.log(`   • POST /api/auth/logout`);
-  console.log(`   • POST /api/auth/change-password`);
-  console.log(`👤 Profile Endpoints:`);
-  console.log(`   • GET /api/profile (protected)`);
-  console.log(`   • PUT /api/profile (protected)`);
-  console.log(`📈 Market Data:`);
-  console.log(`   • GET /api/assets`);
-  console.log(`   • GET /api/market-data/quote/:symbol`);
-
-  if (!isProduction) {
-    console.log(`🛠️ Development Security Endpoints:`);
-    console.log(`   • GET /api/security/stats`);
-    console.log(`   • POST /api/dev/security/clear`);
-    console.log(`   • POST /api/dev/security/block-ip`);
-  }
-});
-
-export default app;

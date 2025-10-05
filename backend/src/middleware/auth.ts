@@ -130,6 +130,7 @@ declare global {
         emailVerified: boolean;
         lastLoginAt?: Date;
         loginAttempts?: number;
+        createdAt?: Date;
       };
       securityContext?: {
         ipAddress: string;

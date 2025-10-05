@@ -377,7 +377,10 @@ router.post(
       }
 
       // Verify password
-      const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+      const isPasswordValid = await bcrypt.compare(
+        password,
+        user.passwordHash!
+      );
 
       if (!isPasswordValid) {
         // Increment failed login attempts
@@ -579,39 +582,35 @@ router.post("/refresh", async (req: Request, res: Response): Promise<void> => {
  *       401:
  *         description: Unauthorized
  */
-router.get(
-  "/me",
-  authenticateToken,
-  async (req: Request, res: Response) => {
-    try {
-      const user = await prisma.user.findUnique({
-        where: { id: req.user!.id },
-        select: {
-          id: true,
-          email: true,
-          firstName: true,
-          lastName: true,
-          avatarUrl: true,
-          provider: true,
-          emailVerified: true,
-        },
-      });
+router.get("/me", authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user!.id },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        avatarUrl: true,
+        provider: true,
+        emailVerified: true,
+      },
+    });
 
-      if (!user) {
-        return res
-          .status(404)
-          .json({ error: "User not found", code: "USER_NOT_FOUND" });
-      }
-
-      res.json(user);
-    } catch (error) {
-      console.error("Failed to fetch user:", error);
-      res
-        .status(500)
-        .json({ error: "Internal server error", code: "SERVER_ERROR" });
+    if (!user) {
+      return res
+        .status(404)
+        .json({ error: "User not found", code: "USER_NOT_FOUND" });
     }
+
+    res.json(user);
+  } catch (error) {
+    console.error("Failed to fetch user:", error);
+    res
+      .status(500)
+      .json({ error: "Internal server error", code: "SERVER_ERROR" });
   }
-);
+});
 
 /**
  * @swagger
@@ -738,7 +737,7 @@ router.post(
       // Verify current password
       const isCurrentPasswordValid = await bcrypt.compare(
         currentPassword,
-        user.passwordHash
+        user.passwordHash!
       );
       if (!isCurrentPasswordValid) {
         console.warn(

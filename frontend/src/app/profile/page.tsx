@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/context/AuthContext';
-import { apiClient } from '@/lib/api-client';
-import { ProfileResponse } from '@/types/api';
-import Image from 'next/image';
-import Link from 'next/link';
+import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { apiClient } from "@/lib/api-client";
+import { ProfileResponse } from "@/types/api";
+import Image from "next/image";
+import Link from "next/link";
 
 // A component to render the main profile content
 function ProfileContent() {
@@ -17,12 +17,13 @@ function ProfileContent() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    firstName: user?.firstName || '',
-    lastName: user?.lastName || '',
-    avatarUrl: user?.avatarUrl || '',
+    firstName: user?.firstName || "",
+    lastName: user?.lastName || "",
+    avatarUrl: user?.avatarUrl || "",
+    bio: "",
   });
 
-  const fetchProfileDetails = async () => {
+  const fetchProfile = async () => {
     try {
       setLoading(true);
       const data = await apiClient.getProfile();
@@ -30,7 +31,7 @@ function ProfileContent() {
       setError(null);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Failed to load profile details'
+        err instanceof Error ? err.message : "Failed to load profile details"
       );
     } finally {
       setLoading(false);
@@ -38,16 +39,17 @@ function ProfileContent() {
   };
 
   useEffect(() => {
-    fetchProfileDetails();
+    fetchProfile();
   }, []);
 
   const handleEdit = () => setIsEditing(true);
   const handleCancel = () => {
     setIsEditing(false);
     setFormData({
-      firstName: user?.firstName || '',
-      lastName: user?.lastName || '',
-      avatarUrl: user?.avatarUrl || '',
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
+      avatarUrl: user?.avatarUrl || "",
+      bio: "",
     });
   };
 
@@ -56,34 +58,43 @@ function ProfileContent() {
       await apiClient.updateProfile({
         firstName: formData.firstName,
         lastName: formData.lastName,
-        avatarUrl: formData.avatarUrl,
+        // avatarUrl omitted to match expected API shape
       });
       // Re-fetch all profile data to ensure consistency
-      await fetchProfileDetails();
+      await fetchProfile();
       setIsEditing(false);
     } catch (err) {
-      console.error('Profile update error:', err);
-      alert('Failed to update profile.');
+      console.error("Profile update error:", err);
+      alert("Failed to update profile.");
     }
   };
 
   const getInitials = () => {
-    if (!user) return '??';
-    return `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase();
+    if (!user) return "??";
+    return `${user.firstName?.[0] || ""}${
+      user.lastName?.[0] || ""
+    }`.toUpperCase();
   };
 
   const formatCurrency = (value: number) =>
-    new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
     }).format(value);
+
+  const formatDate = (value: string | Date) =>
+    new Date(value).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Loading full profile...</p>
+          <div className="spinner"></div>
+          <p className="mt-4 text-muted">Loading profile...</p>
         </div>
       </div>
     );
@@ -91,19 +102,17 @@ function ProfileContent() {
 
   if (error || !profileData) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md text-center">
-          <span className="text-5xl">⚠️</span>
-          <h2 className="mt-4 text-xl font-bold text-gray-900">
-            Error Loading Profile Details
-          </h2>
-          <p className="mt-2 text-gray-600">{error}</p>
-          <button
-            onClick={fetchProfileDetails}
-            className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Try Again
-          </button>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="card max-w-md">
+          <div className="text-center">
+            <h2 className="text-xl font-bold mb-4">Error Loading Profile</h2>
+            <p className="text-secondary mb-6">
+              {error || "Failed to load profile data"}
+            </p>
+            <button onClick={() => fetchProfile()} className="btn-primary">
+              Try Again
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -137,48 +146,61 @@ function ProfileContent() {
             {isEditing ? (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <input
-                    type="text"
-                    placeholder="First Name"
-                    value={formData.firstName}
+                  <div>
+                    <label>First Name</label>
+                    <input
+                      type="text"
+                      value={formData.firstName}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          firstName: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label>Last Name</label>
+                    <input
+                      type="text"
+                      value={formData.lastName}
+                      onChange={(e) =>
+                        setFormData({ ...formData, lastName: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label>Bio</label>
+                  <textarea
+                    value={formData.bio}
                     onChange={(e) =>
-                      setFormData({ ...formData, firstName: e.target.value })
+                      setFormData({ ...formData, bio: e.target.value })
                     }
-                    className="w-full px-3 py-2 border rounded-md"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Last Name"
-                    value={formData.lastName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, lastName: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-md"
+                    rows={3}
+                    placeholder="Tell us about your investment journey..."
                   />
                 </div>
-                <input
-                  type="text"
-                  placeholder="Avatar URL"
-                  value={formData.avatarUrl}
-                  onChange={(e) =>
-                    setFormData({ ...formData, avatarUrl: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border rounded-md"
-                />
               </div>
             ) : (
               <>
-                <h1 className="text-3xl font-bold text-gray-900">
-                  {user?.firstName} {user?.lastName}
+                <h1 className="text-3xl font-bold">
+                  {profileData.user.firstName} {profileData.user.lastName}
                 </h1>
-                <p className="text-gray-600 mt-1">{user?.email}</p>
-                {user?.emailVerified && (
-                  <span className="inline-flex items-center mt-2 px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    ✓ Verified
-                  </span>
+                <p className="text-secondary mt-1">
+                  {formData.bio || "No bio yet. Click edit to add one!"}
+                </p>
+                {profileData.user.emailVerified && (
+                  <span className="badge badge-success mt-2">Verified</span>
                 )}
               </>
             )}
+
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-4 text-sm text-secondary">
+              <span>{profileData.user.email}</span>
+              <span>•</span>
+              <span>Joined {formatDate(profileData.user.createdAt)}</span>
+            </div>
           </div>
 
           {/* Action Buttons */}
@@ -216,36 +238,41 @@ function ProfileContent() {
         </div>
       </div>
 
-      {/* Stats Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium text-gray-500">Total Value</h3>
-          <p className="text-3xl font-bold text-gray-900 mt-2">
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="card">
+          <p className="text-sm text-muted">Total Portfolio Value</p>
+          <p className="text-2xl font-bold mt-1">
             {formatCurrency(profileData.stats.totalValue)}
           </p>
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium text-gray-500">Total Return</h3>
+
+        <div className="card">
+          <p className="text-sm text-muted">Total Return</p>
           <p
-            className={`text-3xl font-bold mt-2 ${
-              profileData.stats.totalReturn >= 0
-                ? 'text-green-600'
-                : 'text-red-600'
+            className={`text-2xl font-bold mt-1 ${
+              profileData.stats.totalReturn >= 0 ? "text-success" : "text-error"
             }`}
           >
+            {profileData.stats.totalReturn >= 0 ? "+" : ""}
             {formatCurrency(profileData.stats.totalReturn)}
           </p>
-        </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium text-gray-500">Return %</h3>
           <p
-            className={`text-3xl font-bold mt-2 ${
+            className={`text-sm ${
               profileData.stats.returnPercentage >= 0
-                ? 'text-green-600'
-                : 'text-red-600'
+                ? "text-success"
+                : "text-error"
             }`}
           >
+            {profileData.stats.returnPercentage >= 0 ? "+" : ""}
             {profileData.stats.returnPercentage.toFixed(2)}%
+          </p>
+        </div>
+
+        <div className="card">
+          <p className="text-sm text-muted">Active Portfolios</p>
+          <p className="text-2xl font-bold mt-1">
+            {profileData.portfolios.length}
           </p>
         </div>
       </div>
@@ -255,7 +282,7 @@ function ProfileContent() {
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Portfolios</h2>
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <ul className="divide-y divide-gray-200">
-            {profileData.portfolios.map((portfolio) => (
+            {profileData!.portfolios.map((portfolio) => (
               <li key={portfolio.id} className="p-6 hover:bg-gray-50">
                 <Link href={`/portfolios/${portfolio.id}`} className="block">
                   <div className="flex justify-between items-center">
@@ -274,8 +301,8 @@ function ProfileContent() {
                       <p
                         className={`text-sm ${
                           portfolio.totalReturn >= 0
-                            ? 'text-green-600'
-                            : 'text-red-600'
+                            ? "text-green-600"
+                            : "text-red-600"
                         }`}
                       >
                         {formatCurrency(portfolio.totalReturn)} (
@@ -300,7 +327,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.push('/login');
+      router.push("/login");
     }
   }, [isAuthenticated, isLoading, router]);
 

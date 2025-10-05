@@ -1,7 +1,8 @@
-'use client';
-import React from 'react';
-import { Menu } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+"use client";
+import React from "react";
+import { Menu } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "../theme/ThemeToggle";
 
 const Header = ({ toggleSidebar }: { toggleSidebar: () => void }) => {
   return (
@@ -10,9 +11,8 @@ const Header = ({ toggleSidebar }: { toggleSidebar: () => void }) => {
         <Menu className="h-6 w-6" />
         <span className="sr-only">Toggle sidebar</span>
       </Button>
-      <div>
-        {/* Placeholder for user menu or other header items */}
-        <p>Header</p>
+      <div className="flex items-center gap-4">
+        <ThemeToggle />
       </div>
     </header>
   );
