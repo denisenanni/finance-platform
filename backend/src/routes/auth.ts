@@ -4,8 +4,11 @@ import jwt from "jsonwebtoken";
 import rateLimit from "express-rate-limit";
 import { prisma } from "../lib/prisma";
 import { authenticateToken, blacklistToken } from "../middleware/auth";
+import passport from "../lib/passport";
 
 const router = express.Router();
+
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 
 const JWT_SECRET =
   process.env.JWT_SECRET ||
@@ -564,26 +567,23 @@ router.post("/refresh", async (req: Request, res: Response): Promise<void> => {
 
 /**
  * @swagger
- * /auth/session:
+ * /auth/me:
  *   get:
- *     summary: Get current user information
+ *     summary: Get current authenticated user
  *     tags: [Authentication]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Current user information
+ *         description: User data
  *       401:
  *         description: Unauthorized
  */
 router.get(
-  "/session",
+  "/me",
   authenticateToken,
-  async (req: Request, res: Response): Promise<void> => {
+  async (req: Request, res: Response) => {
     try {
-      const clientIP = req.ip || "unknown";
-
-      // Get fresh user data from database
       const user = await prisma.user.findUnique({
         where: { id: req.user!.id },
         select: {
@@ -591,38 +591,24 @@ router.get(
           email: true,
           firstName: true,
           lastName: true,
-          virtualBalance: true,
+          avatarUrl: true,
+          provider: true,
           emailVerified: true,
-          lastLoginAt: true,
-          lastSeenAt: true,
-          createdAt: true,
-          updatedAt: true,
         },
       });
 
       if (!user) {
-        res.status(401).json({
-          error: "User not found",
-          code: "USER_NOT_FOUND",
-        });
-        return;
+        return res
+          .status(404)
+          .json({ error: "User not found", code: "USER_NOT_FOUND" });
       }
 
-      console.log(`ℹ️ User info requested: ${user.email} from IP: ${clientIP}`);
-
-      res.json({
-        user: {
-          ...user,
-          virtualBalance: Number(user.virtualBalance),
-        },
-        securityContext: req.securityContext,
-      });
+      res.json(user);
     } catch (error) {
-      console.error("Get user error:", error);
-      res.status(500).json({
-        error: "Failed to get user information",
-        code: "GET_USER_ERROR",
-      });
+      console.error("Failed to fetch user:", error);
+      res
+        .status(500)
+        .json({ error: "Internal server error", code: "SERVER_ERROR" });
     }
   }
 );
@@ -796,112 +782,108 @@ router.post(
   }
 );
 
+// ============================================================================
+// SOCIAL AUTHENTICATION ROUTES
+// ============================================================================
+
 /**
  * @swagger
- * /auth/social-login:
- *   post:
- *     summary: Login or register user via social provider
+ * /auth/google:
+ *   get:
+ *     summary: Initiate Google social login
  *     tags: [Authentication]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *               - name
- *               - provider
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *               name:
- *                 type: string
- *               avatarUrl:
- *                 type: string
- *                 format: uri
- *               provider:
- *                 type: string
  *     responses:
- *       200:
- *         description: Social login successful
- *       400:
- *         description: Invalid input
+ *       302:
+ *         description: Redirects to Google for authentication
  */
-router.post(
-  "/social-login",
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const { email, name, avatarUrl, provider } = req.body;
-      const clientIP = req.ip || "unknown";
+router.get(
+  "/google",
+  passport.authenticate("google", {
+    scope: ["profile", "email"],
+    session: false,
+  })
+);
 
-      if (!email || !name || !provider) {
-        res.status(400).json({
-          error: "Email, name, and provider are required",
-          code: "MISSING_SOCIAL_LOGIN_FIELDS",
-        });
-        return;
-      }
+/**
+ * @swagger
+ * /auth/google/callback:
+ *   get:
+ *     summary: Google social login callback
+ *     tags: [Authentication]
+ *     responses:
+ *       302:
+ *         description: Redirects to the frontend with tokens
+ *       500:
+ *         description: Authentication failed
+ */
+router.get(
+  "/google/callback",
+  passport.authenticate("google", {
+    failureRedirect: `${FRONTEND_URL}/login?error=social-login-failed`,
+    session: false,
+  }),
+  (req: Request, res: Response) => {
+    // User is authenticated by passport, and the user object is attached to req.user
+    const user = req.user as any;
 
-      const [firstName, ...lastNameParts] = name.split(" ");
-      const lastName = lastNameParts.join(" ");
-
-      const user = await prisma.user.upsert({
-        where: { email: email.toLowerCase() },
-        update: {
-          firstName: firstName,
-          lastName: lastName,
-          avatarUrl: avatarUrl,
-          lastLoginAt: new Date(),
-          lastSeenAt: new Date(),
-          lastSeenIP: clientIP,
-        },
-        create: {
-          email: email.toLowerCase(),
-          firstName: firstName,
-          lastName: lastName,
-          avatarUrl: avatarUrl,
-          provider: provider,
-          emailVerified: true, // Email is verified by the OAuth provider
-          lastLoginAt: new Date(),
-          lastSeenAt: new Date(),
-          lastSeenIP: clientIP,
-        },
-        select: {
-          id: true,
-          email: true,
-          firstName: true,
-          lastName: true,
-          virtualBalance: true,
-          emailVerified: true,
-          lastLoginAt: true,
-        },
-      });
-
-      // Generate tokens
-      const { accessToken, refreshToken } = generateTokens(user.id);
-
-      console.log(
-        `✅ User logged in via ${provider}: ${user.email} from IP: ${clientIP}`
-      );
-
-      res.json({
-        message: "Social login successful",
-        user,
-        tokens: {
-          accessToken,
-          refreshToken,
-          expiresIn: JWT_EXPIRES_IN,
-        },
-      });
-    } catch (error) {
-      console.error("Social login error:", error);
-      res.status(500).json({
-        error: "Social login failed",
-        code: "SOCIAL_LOGIN_ERROR",
-      });
+    if (!user) {
+      return res.redirect(`${FRONTEND_URL}/login?error=authentication-failed`);
     }
+
+    const { accessToken, refreshToken } = generateTokens(user.id);
+
+    // Redirect to a dedicated callback page on the frontend
+    res.redirect(
+      `${FRONTEND_URL}/auth/callback?accessToken=${accessToken}&refreshToken=${refreshToken}`
+    );
+  }
+);
+
+/**
+ * @swagger
+ * /auth/facebook:
+ *   get:
+ *     summary: Initiate Facebook social login
+ *     tags: [Authentication]
+ *     responses:
+ *       302:
+ *         description: Redirects to Facebook for authentication
+ */
+router.get(
+  "/facebook",
+  passport.authenticate("facebook", { scope: ["email"], session: false })
+);
+
+/**
+ * @swagger
+ * /auth/facebook/callback:
+ *   get:
+ *     summary: Facebook social login callback
+ *     tags: [Authentication]
+ *     responses:
+ *       302:
+ *         description: Redirects to the frontend with tokens
+ *       500:
+ *         description: Authentication failed
+ */
+router.get(
+  "/facebook/callback",
+  passport.authenticate("facebook", {
+    failureRedirect: `${FRONTEND_URL}/login?error=social-login-failed`,
+    session: false,
+  }),
+  (req: Request, res: Response) => {
+    const user = req.user as any;
+
+    if (!user) {
+      return res.redirect(`${FRONTEND_URL}/login?error=authentication-failed`);
+    }
+
+    const { accessToken, refreshToken } = generateTokens(user.id);
+
+    res.redirect(
+      `${FRONTEND_URL}/auth/callback?accessToken=${accessToken}&refreshToken=${refreshToken}`
+    );
   }
 );
 

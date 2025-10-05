@@ -16,7 +16,9 @@ export function middleware(request: NextRequest) {
     }
   } else {
     if (isPrivateRoute) {
-      return NextResponse.redirect(new URL("/login", request.url));
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('callbackUrl', pathname);
+      return NextResponse.redirect(loginUrl);
     }
   }
 

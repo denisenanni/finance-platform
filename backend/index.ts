@@ -13,6 +13,8 @@ import {
   requireEmailVerification,
 } from "@/middleware/auth";
 import { prisma } from "@/lib/prisma";
+import passport from "passport";
+import "./src/lib/passport";
 
 // Load environment variables
 dotenv.config();
@@ -118,6 +120,7 @@ app.use(
 // ============================================================================
 // BODY PARSING WITH LIMITS
 // ============================================================================
+app.use(passport.initialize());
 
 app.use(
   express.json({
