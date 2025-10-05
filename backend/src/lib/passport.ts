@@ -33,7 +33,6 @@ if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) {
             update: {
               firstName: profile.name?.givenName,
               lastName: profile.name?.familyName,
-              avatarUrl: profile.photos?.[0]?.value,
               provider: "google",
             },
             create: {
@@ -42,7 +41,6 @@ if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) {
               provider: "google",
               firstName: profile.name?.givenName,
               lastName: profile.name?.familyName,
-              avatarUrl: profile.photos?.[0]?.value,
             },
           });
 
@@ -81,7 +79,6 @@ if (FACEBOOK_APP_ID && FACEBOOK_APP_SECRET) {
             update: {
               firstName: profile.name?.givenName,
               lastName: profile.name?.familyName,
-              avatarUrl: profile.photos?.[0]?.value,
               provider: "facebook",
             },
             create: {
@@ -90,7 +87,6 @@ if (FACEBOOK_APP_ID && FACEBOOK_APP_SECRET) {
               provider: "facebook",
               firstName: profile.name?.givenName,
               lastName: profile.name?.familyName,
-              avatarUrl: profile.photos?.[0]?.value,
             },
           });
 

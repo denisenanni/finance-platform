@@ -5,6 +5,7 @@ import rateLimit from "express-rate-limit";
 import { prisma } from "../lib/prisma";
 import { authenticateToken, blacklistToken } from "../middleware/auth";
 import passport from "../lib/passport";
+import { User } from "@/types/api";
 
 const router = express.Router();
 
@@ -570,47 +571,120 @@ router.post("/refresh", async (req: Request, res: Response): Promise<void> => {
 
 /**
  * @swagger
- * /auth/me:
+ * /api/auth/me:
  *   get:
  *     summary: Get current authenticated user
+ *     description: Retrieve the currently authenticated user's information
  *     tags: [Authentication]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: User data
+ *         description: User data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                   description: User's unique identifier
+ *                 email:
+ *                   type: string
+ *                   format: email
+ *                   description: User's email address
+ *                 firstName:
+ *                   type: string
+ *                   nullable: true
+ *                   description: User's first name
+ *                 lastName:
+ *                   type: string
+ *                   nullable: true
+ *                   description: User's last name
+ *                 avatarUrl:
+ *                   type: string
+ *                   nullable: true
+ *                   description: URL to user's avatar image
+ *                 provider:
+ *                   type: string
+ *                   nullable: true
+ *                   description: Authentication provider (google, facebook, local)
+ *                 emailVerified:
+ *                   type: boolean
+ *                   description: Whether the user's email is verified
  *       401:
- *         description: Unauthorized
+ *         description: Unauthorized - Invalid or missing authentication token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Invalid or expired token
+ *                 code:
+ *                   type: string
+ *                   example: INVALID_TOKEN
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: User not found
+ *                 code:
+ *                   type: string
+ *                   example: USER_NOT_FOUND
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Internal server error
+ *                 code:
+ *                   type: string
+ *                   example: SERVER_ERROR
  */
-router.get("/me", authenticateToken, async (req: Request, res: Response) => {
-  try {
-    const user = await prisma.user.findUnique({
-      where: { id: req.user!.id },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        avatarUrl: true,
-        provider: true,
-        emailVerified: true,
-      },
-    });
+router.get(
+  "/me",
+  authenticateToken,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: req.user!.id },
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          provider: true,
+          emailVerified: true,
+        },
+      });
 
-    if (!user) {
-      return res
-        .status(404)
-        .json({ error: "User not found", code: "USER_NOT_FOUND" });
+      if (!user) {
+        res
+          .status(404)
+          .json({ error: "User not found", code: "USER_NOT_FOUND" });
+        return;
+      }
+
+      res.json(user);
+    } catch (error) {
+      console.error("Failed to fetch user:", error);
+      res
+        .status(500)
+        .json({ error: "Internal server error", code: "SERVER_ERROR" });
     }
-
-    res.json(user);
-  } catch (error) {
-    console.error("Failed to fetch user:", error);
-    res
-      .status(500)
-      .json({ error: "Internal server error", code: "SERVER_ERROR" });
   }
-});
+);
 
 /**
  * @swagger
@@ -872,7 +946,7 @@ router.get(
     session: false,
   }),
   (req: Request, res: Response) => {
-    const user = req.user as any;
+    const user = req.user as User;
 
     if (!user) {
       return res.redirect(`${FRONTEND_URL}/login?error=authentication-failed`);

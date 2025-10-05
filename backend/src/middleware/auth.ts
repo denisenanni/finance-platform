@@ -121,17 +121,6 @@ export const blacklistToken = (token: string): void => {
 declare global {
   namespace Express {
     interface Request {
-      user?: {
-        id: string;
-        email: string;
-        firstName: string | null;
-        lastName: string | null;
-        virtualBalance: number;
-        emailVerified: boolean;
-        lastLoginAt?: Date;
-        loginAttempts?: number;
-        createdAt?: Date;
-      };
       securityContext?: {
         ipAddress: string;
         userAgent: string;

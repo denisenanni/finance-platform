@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React, {
   createContext,
@@ -7,16 +7,15 @@ import React, {
   useEffect,
   ReactNode,
   useCallback,
-} from 'react';
-import { apiClient } from '@/lib/api-client';
-import Cookies from 'js-cookie';
+} from "react";
+import { apiClient } from "@/lib/api-client";
+import Cookies from "js-cookie";
 
 interface User {
   id: string;
   email: string;
   firstName?: string;
   lastName?: string;
-  avatarUrl?: string;
   provider?: string;
   emailVerified: boolean;
 }
@@ -38,8 +37,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = useCallback(() => {
     setUser(null);
     apiClient.clearFailedQueue();
-    Cookies.remove('accessToken');
-    Cookies.remove('refreshToken');
+    Cookies.remove("accessToken");
+    Cookies.remove("refreshToken");
     apiClient.logout().catch(console.error);
   }, []);
 
@@ -50,15 +49,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(userData);
     } catch {
       setUser(null);
-      Cookies.remove('accessToken');
-      Cookies.remove('refreshToken');
+      Cookies.remove("accessToken");
+      Cookies.remove("refreshToken");
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    const token = Cookies.get('accessToken');
+    const token = Cookies.get("accessToken");
     if (token) {
       fetchUser();
     } else {
@@ -69,22 +68,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       logout();
     };
 
-    window.addEventListener('auth-error', handleAuthError);
+    window.addEventListener("auth-error", handleAuthError);
 
     return () => {
-      window.removeEventListener('auth-error', handleAuthError);
+      window.removeEventListener("auth-error", handleAuthError);
     };
   }, [fetchUser, logout]);
 
   const login = useCallback(
     (accessToken: string, refreshToken: string) => {
-      Cookies.set('accessToken', accessToken, {
+      Cookies.set("accessToken", accessToken, {
         secure: true,
-        sameSite: 'strict',
+        sameSite: "strict",
       });
-      Cookies.set('refreshToken', refreshToken, {
+      Cookies.set("refreshToken", refreshToken, {
         secure: true,
-        sameSite: 'strict',
+        sameSite: "strict",
       });
       fetchUser();
     },
@@ -105,7 +104,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

@@ -23,39 +23,6 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 const isProduction = process.env.NODE_ENV === "production";
 
-// SERVER STARTUP
-// ============================================================================
-
-app.listen(Number(PORT), "0.0.0.0", () => {
-  console.log(`🚀 FinanceSkills Hub API running on port ${PORT}`);
-  console.log(
-    `🔒 Security Mode: ${isProduction ? "PRODUCTION" : "DEVELOPMENT"}`
-  );
-  console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
-  console.log(`🔍 Health Check: http://localhost:${PORT}/health`);
-  console.log(`🔐 Auth Endpoints:`);
-  console.log(`   • POST /api/auth/register`);
-  console.log(`   • POST /api/auth/login`);
-  console.log(`   • POST /api/auth/refresh`);
-  console.log(`   • GET /api/auth/me`);
-  console.log(`   • POST /api/auth/logout`);
-  console.log(`   • POST /api/auth/change-password`);
-  console.log(`👤 Profile Endpoints:`);
-  console.log(`   • GET /api/profile (protected)`);
-  console.log(`   • PUT /api/profile (protected)`);
-  console.log(`📈 Market Data:`);
-  console.log(`   • GET /api/assets`);
-  console.log(`   • GET /api/market-data/quote/:symbol`);
-
-  if (!isProduction) {
-    console.log(`🛠️ Development Security Endpoints:`);
-    console.log(`   • GET /security/stats`);
-    console.log(`   • POST /dev/security/clear`);
-    console.log(`   • POST /dev/security/block-ip`);
-  }
-});
-
-export default app;
 // SECURITY CONFIGURATION
 // ============================================================================
 
@@ -1032,3 +999,37 @@ process.on("SIGINT", () => {
 });
 
 // ============================================================================
+
+// SERVER STARTUP
+// ============================================================================
+
+app.listen(Number(PORT), "0.0.0.0", () => {
+  console.log(`🚀 FinanceSkills Hub API running on port ${PORT}`);
+  console.log(
+    `🔒 Security Mode: ${isProduction ? "PRODUCTION" : "DEVELOPMENT"}`
+  );
+  console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
+  console.log(`🔍 Health Check: http://localhost:${PORT}/health`);
+  console.log(`🔐 Auth Endpoints:`);
+  console.log(`   • POST /api/auth/register`);
+  console.log(`   • POST /api/auth/login`);
+  console.log(`   • POST /api/auth/refresh`);
+  console.log(`   • GET /api/auth/me`);
+  console.log(`   • POST /api/auth/logout`);
+  console.log(`   • POST /api/auth/change-password`);
+  console.log(`👤 Profile Endpoints:`);
+  console.log(`   • GET /api/profile (protected)`);
+  console.log(`   • PUT /api/profile (protected)`);
+  console.log(`📈 Market Data:`);
+  console.log(`   • GET /api/assets`);
+  console.log(`   • GET /api/market-data/quote/:symbol`);
+
+  if (!isProduction) {
+    console.log(`🛠️ Development Security Endpoints:`);
+    console.log(`   • GET /security/stats`);
+    console.log(`   • POST /dev/security/clear`);
+    console.log(`   • POST /dev/security/block-ip`);
+  }
+});
+
+export default app;
