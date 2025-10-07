@@ -5,12 +5,11 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { apiClient } from "@/lib/api-client";
 import { ProfileResponse } from "@/types/api";
-import Image from "next/image";
 import Link from "next/link";
 
 // A component to render the main profile content
 function ProfileContent() {
-  const { user, logout } = useAuth(); // Assuming user object is now directly available
+  const { user, logout } = useAuth();
   const [profileData, setProfileData] = useState<ProfileResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +18,6 @@ function ProfileContent() {
   const [formData, setFormData] = useState({
     firstName: user?.firstName || "",
     lastName: user?.lastName || "",
-    avatarUrl: user?.avatarUrl || "",
     bio: "",
   });
 
@@ -48,7 +46,6 @@ function ProfileContent() {
     setFormData({
       firstName: user?.firstName || "",
       lastName: user?.lastName || "",
-      avatarUrl: user?.avatarUrl || "",
       bio: "",
     });
   };
@@ -58,9 +55,7 @@ function ProfileContent() {
       await apiClient.updateProfile({
         firstName: formData.firstName,
         lastName: formData.lastName,
-        // avatarUrl omitted to match expected API shape
       });
-      // Re-fetch all profile data to ensure consistency
       await fetchProfile();
       setIsEditing(false);
     } catch (err) {
@@ -91,10 +86,19 @@ function ProfileContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div style={{ textAlign: "center" }}>
           <div className="spinner"></div>
-          <p className="mt-4 text-muted">Loading profile...</p>
+          <p className="text-muted" style={{ marginTop: "16px" }}>
+            Loading profile...
+          </p>
         </div>
       </div>
     );
@@ -102,11 +106,26 @@ function ProfileContent() {
 
   if (error || !profileData) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="card max-w-md">
-          <div className="text-center">
-            <h2 className="text-xl font-bold mb-4">Error Loading Profile</h2>
-            <p className="text-secondary mb-6">
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div className="card" style={{ maxWidth: "448px" }}>
+          <div style={{ textAlign: "center" }}>
+            <h2
+              style={{
+                fontSize: "1.25rem",
+                fontWeight: "bold",
+                marginBottom: "16px",
+              }}
+            >
+              Error Loading Profile
+            </h2>
+            <p className="text-secondary" style={{ marginBottom: "24px" }}>
               {error || "Failed to load profile data"}
             </p>
             <button onClick={() => fetchProfile()} className="btn-primary">
@@ -118,34 +137,56 @@ function ProfileContent() {
     );
   }
 
-  // Main Profile JSX
   return (
-    <div className="space-y-6">
+    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       {/* Header Section */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+      <div className="card">
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "24px",
+          }}
+        >
           {/* Avatar */}
-          <div className="relative">
-            {user?.avatarUrl ? (
-              <Image
-                src={user.avatarUrl}
-                alt="Avatar"
-                width={96}
-                height={96}
-                className="rounded-full shadow-lg"
-              />
-            ) : (
-              <div className="h-24 w-24 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg">
-                {getInitials()}
-              </div>
-            )}
+          <div style={{ position: "relative" }}>
+            <div
+              style={{
+                height: "96px",
+                width: "96px",
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "white",
+                fontSize: "1.5rem",
+                fontWeight: "bold",
+                boxShadow: "var(--shadow-lg)",
+              }}
+            >
+              {getInitials()}
+            </div>
           </div>
 
           {/* User Info */}
-          <div className="flex-1 text-center md:text-left">
+          <div style={{ flex: 1, textAlign: "center", width: "100%" }}>
             {isEditing ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "16px",
+                }}
+              >
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr",
+                    gap: "16px",
+                  }}
+                >
                   <div>
                     <label>First Name</label>
                     <input
@@ -184,19 +225,35 @@ function ProfileContent() {
               </div>
             ) : (
               <>
-                <h1 className="text-3xl font-bold">
+                <h1 style={{ fontSize: "1.875rem", fontWeight: "bold" }}>
                   {profileData.user.firstName} {profileData.user.lastName}
                 </h1>
-                <p className="text-secondary mt-1">
+                <p className="text-secondary" style={{ marginTop: "4px" }}>
                   {formData.bio || "No bio yet. Click edit to add one!"}
                 </p>
                 {profileData.user.emailVerified && (
-                  <span className="badge badge-success mt-2">Verified</span>
+                  <span
+                    className="badge badge-success"
+                    style={{ marginTop: "8px" }}
+                  >
+                    Verified
+                  </span>
                 )}
               </>
             )}
 
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-4 text-sm text-secondary">
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "16px",
+                marginTop: "16px",
+                fontSize: "0.875rem",
+              }}
+              className="text-secondary"
+            >
               <span>{profileData.user.email}</span>
               <span>•</span>
               <span>Joined {formatDate(profileData.user.createdAt)}</span>
@@ -204,33 +261,31 @@ function ProfileContent() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2">
+          <div style={{ display: "flex", gap: "8px" }}>
             {isEditing ? (
               <>
-                <button
-                  onClick={handleSave}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md"
-                >
+                <button onClick={handleSave} className="btn-primary">
                   Save
                 </button>
-                <button
-                  onClick={handleCancel}
-                  className="px-4 py-2 bg-gray-200 rounded-md"
-                >
+                <button onClick={handleCancel} className="btn-secondary">
                   Cancel
                 </button>
               </>
             ) : (
-              <button
-                onClick={handleEdit}
-                className="px-4 py-2 bg-gray-200 rounded-md"
-              >
+              <button onClick={handleEdit} className="btn-secondary">
                 Edit Profile
               </button>
             )}
             <button
               onClick={logout}
-              className="px-4 py-2 bg-red-500 text-white rounded-md"
+              className="bg-error"
+              style={{
+                padding: "10px 20px",
+                borderRadius: "8px",
+                border: "none",
+                cursor: "pointer",
+                fontWeight: 600,
+              }}
             >
               Logout
             </button>
@@ -239,30 +294,44 @@ function ProfileContent() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+          gap: "16px",
+        }}
+      >
         <div className="card">
-          <p className="text-sm text-muted">Total Portfolio Value</p>
-          <p className="text-2xl font-bold mt-1">
+          <p className="text-sm text-muted" style={{ fontSize: "0.875rem" }}>
+            Total Portfolio Value
+          </p>
+          <p
+            style={{ fontSize: "1.5rem", fontWeight: "bold", marginTop: "4px" }}
+          >
             {formatCurrency(profileData.stats.totalValue)}
           </p>
         </div>
 
         <div className="card">
-          <p className="text-sm text-muted">Total Return</p>
+          <p className="text-muted" style={{ fontSize: "0.875rem" }}>
+            Total Return
+          </p>
           <p
-            className={`text-2xl font-bold mt-1 ${
+            className={
               profileData.stats.totalReturn >= 0 ? "text-success" : "text-error"
-            }`}
+            }
+            style={{ fontSize: "1.5rem", fontWeight: "bold", marginTop: "4px" }}
           >
             {profileData.stats.totalReturn >= 0 ? "+" : ""}
             {formatCurrency(profileData.stats.totalReturn)}
           </p>
           <p
-            className={`text-sm ${
+            className={
               profileData.stats.returnPercentage >= 0
                 ? "text-success"
                 : "text-error"
-            }`}
+            }
+            style={{ fontSize: "0.875rem" }}
           >
             {profileData.stats.returnPercentage >= 0 ? "+" : ""}
             {profileData.stats.returnPercentage.toFixed(2)}%
@@ -270,8 +339,12 @@ function ProfileContent() {
         </div>
 
         <div className="card">
-          <p className="text-sm text-muted">Active Portfolios</p>
-          <p className="text-2xl font-bold mt-1">
+          <p className="text-muted" style={{ fontSize: "0.875rem" }}>
+            Active Portfolios
+          </p>
+          <p
+            style={{ fontSize: "1.5rem", fontWeight: "bold", marginTop: "4px" }}
+          >
             {profileData.portfolios.length}
           </p>
         </div>
@@ -279,31 +352,83 @@ function ProfileContent() {
 
       {/* Portfolios Section */}
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Portfolios</h2>
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <ul className="divide-y divide-gray-200">
-            {profileData!.portfolios.map((portfolio) => (
-              <li key={portfolio.id} className="p-6 hover:bg-gray-50">
-                <Link href={`/portfolios/${portfolio.id}`} className="block">
-                  <div className="flex justify-between items-center">
+        <h2
+          style={{
+            fontSize: "1.5rem",
+            fontWeight: "bold",
+            marginBottom: "16px",
+          }}
+        >
+          Portfolios
+        </h2>
+        <div className="card" style={{ padding: 0 }}>
+          <ul
+            style={{
+              listStyle: "none",
+              margin: 0,
+              padding: 0,
+            }}
+          >
+            {profileData.portfolios.map((portfolio, index) => (
+              <li
+                key={portfolio.id}
+                style={{
+                  padding: "24px",
+                  borderBottom:
+                    index < profileData.portfolios.length - 1
+                      ? "1px solid var(--border)"
+                      : "none",
+                  transition: "background-color 0.2s ease",
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.backgroundColor = "var(--bg-tertiary)")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.backgroundColor = "transparent")
+                }
+              >
+                <Link
+                  href={`/portfolios/${portfolio.id}`}
+                  style={{ display: "block", textDecoration: "none" }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                      gap: "16px",
+                    }}
+                  >
                     <div>
-                      <p className="text-xl font-semibold text-blue-600">
+                      <p
+                        style={{
+                          fontSize: "1.25rem",
+                          fontWeight: 600,
+                          color: "var(--primary)",
+                          marginBottom: "4px",
+                        }}
+                      >
                         {portfolio.name}
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p
+                        className="text-muted"
+                        style={{ fontSize: "0.875rem" }}
+                      >
                         {portfolio.description}
                       </p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-xl font-bold">
+                    <div style={{ textAlign: "right" }}>
+                      <p style={{ fontSize: "1.25rem", fontWeight: "bold" }}>
                         {formatCurrency(portfolio.totalValue)}
                       </p>
                       <p
-                        className={`text-sm ${
+                        className={
                           portfolio.totalReturn >= 0
-                            ? "text-green-600"
-                            : "text-red-600"
-                        }`}
+                            ? "text-success"
+                            : "text-error"
+                        }
+                        style={{ fontSize: "0.875rem" }}
                       >
                         {formatCurrency(portfolio.totalReturn)} (
                         {portfolio.returnPercentage.toFixed(2)}%)
@@ -332,18 +457,28 @@ export default function ProfilePage() {
   }, [isAuthenticated, isLoading, router]);
 
   if (isLoading || !isAuthenticated) {
-    // Show a loading spinner or a blank page while redirecting
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500"></div>
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div className="spinner"></div>
       </div>
     );
   }
 
-  // User is authenticated, render the main content
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
+    <div
+      style={{
+        minHeight: "100vh",
+        padding: "32px 16px",
+      }}
+    >
+      <div className="container">
         <ProfileContent />
       </div>
     </div>

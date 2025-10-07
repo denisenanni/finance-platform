@@ -18,6 +18,7 @@ interface User {
   lastName?: string;
   provider?: string;
   emailVerified: boolean;
+  createdAt: string;
 }
 
 interface AuthContextType {
