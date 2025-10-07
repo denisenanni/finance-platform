@@ -204,13 +204,18 @@ tail_logs
 
 echo "🚀 Starting FinanceFlow development access..."
 kubectl port-forward -n $NAMESPACE svc/nginx 8080:80 &
-PORT_FORWARD_PID=$!
+NGINX_PID=$!
 
 kubectl port-forward -n $NAMESPACE svc/backend 4000:3001 &
 BACKEND_PID=$!
 
 kubectl port-forward -n $NAMESPACE svc/pgadmin 8081:80 &
 PGADMIN_PID=$!
+
+echo "✅ Port forwards started. Press Ctrl+C to stop all services."
+
+# Wait for all of them
+wait $NGINX_PID $BACKEND_PID $PGADMIN_PID
 
 # Wait a moment for port-forward to establish
 sleep 15

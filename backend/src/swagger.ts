@@ -256,7 +256,7 @@ const options: swaggerJsdoc.Options = {
       },
     ],
   },
-  apis: ["./src/routes/*.ts", "./src/routes/*.js"], // Support both .ts and .js files
+  apis: ["./src/routes/*.ts", "./src/routes/*.js", "./index.ts"], // Support both .ts and .js files
 };
 
 const specs = swaggerJsdoc(options);
