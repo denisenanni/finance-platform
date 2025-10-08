@@ -2,8 +2,8 @@ import axios, {
   AxiosInstance,
   InternalAxiosRequestConfig,
   AxiosError,
-} from 'axios';
-import Cookies from 'js-cookie';
+} from "axios";
+import Cookies from "js-cookie";
 import {
   LoginRequest,
   AuthResponse,
@@ -20,7 +20,7 @@ import {
   Holding,
   Quiz,
   QuizAnswer,
-} from '@/types/api';
+} from "@/types/api";
 
 class ApiClient {
   private client: AxiosInstance;
@@ -35,19 +35,19 @@ class ApiClient {
       baseURL:
         baseURL ||
         process.env.NEXT_PUBLIC_API_URL ||
-        'http://localhost:4000/api',
+        "http://localhost:4000/api",
       timeout: 10000,
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       withCredentials: true,
     });
 
     this.client.interceptors.request.use(
       (config: InternalAxiosRequestConfig) => {
-        const token = Cookies.get('accessToken');
+        const token = Cookies.get("accessToken");
         if (token) {
-          config.headers['Authorization'] = `Bearer ${token}`;
+          config.headers["Authorization"] = `Bearer ${token}`;
         }
         return config;
       },
@@ -67,7 +67,7 @@ class ApiClient {
               this.failedQueue.push({ resolve, reject });
             })
               .then((token) => {
-                originalRequest.headers['Authorization'] = 'Bearer ' + token;
+                originalRequest.headers["Authorization"] = "Bearer " + token;
                 return this.client(originalRequest);
               })
               .catch((err) => {
@@ -80,18 +80,19 @@ class ApiClient {
 
           try {
             const newTokens = await this.refreshToken();
-            Cookies.set('accessToken', newTokens.accessToken, {
+            Cookies.set("accessToken", newTokens.accessToken, {
               secure: true,
-              sameSite: 'strict',
+              sameSite: "strict",
             });
-            originalRequest.headers['Authorization'] =
-              `Bearer ${newTokens.accessToken}`;
+            originalRequest.headers[
+              "Authorization"
+            ] = `Bearer ${newTokens.accessToken}`;
             this.processQueue(null, newTokens.accessToken);
             return this.client(originalRequest);
           } catch (refreshError) {
             this.processQueue(refreshError, null);
             // Trigger logout in AuthContext
-            window.dispatchEvent(new Event('auth-error'));
+            window.dispatchEvent(new Event("auth-error"));
             return Promise.reject(refreshError);
           } finally {
             this.isRefreshing = false;
@@ -116,7 +117,7 @@ class ApiClient {
 
   public clearFailedQueue() {
     this.failedQueue.forEach((prom) => {
-      prom.reject(new Error('User logged out, request cancelled.'));
+      prom.reject(new Error("User logged out, request cancelled."));
     });
     this.failedQueue = [];
   }
@@ -124,7 +125,7 @@ class ApiClient {
   // Auth endpoints
   async login(credentials: LoginRequest): Promise<AuthResponse> {
     const response = await this.client.post<AuthResponse>(
-      '/auth/login',
+      "/auth/login",
       credentials
     );
     return response.data;
@@ -132,23 +133,23 @@ class ApiClient {
 
   async register(userData: RegisterRequest): Promise<AuthResponse> {
     const response = await this.client.post<AuthResponse>(
-      '/auth/register',
+      "/auth/register",
       userData
     );
     return response.data;
   }
 
   async logout(): Promise<void> {
-    await this.client.post('/auth/logout');
+    await this.client.post("/auth/logout");
   }
 
   async refreshToken(): Promise<{ accessToken: string }> {
-    const refreshToken = Cookies.get('refreshToken');
+    const refreshToken = Cookies.get("refreshToken");
     if (!refreshToken) {
-      throw new Error('No refresh token available');
+      throw new Error("No refresh token available");
     }
     const response = await this.client.post<{ accessToken: string }>(
-      '/auth/refresh',
+      "/auth/refresh",
       { refreshToken }
     );
     return response.data;
@@ -156,23 +157,23 @@ class ApiClient {
 
   // User endpoints
   async getCurrentUser(): Promise<User> {
-    const response = await this.client.get<User>('/auth/me');
+    const response = await this.client.get<User>("/auth/me");
     return response.data;
   }
 
   async getProfile(): Promise<ProfileResponse> {
-    const response = await this.client.get<ProfileResponse>('/profile');
+    const response = await this.client.get<ProfileResponse>("/profile");
     return response.data;
   }
 
   async updateProfile(userData: Partial<User>): Promise<User> {
-    const response = await this.client.patch<User>('/profile', userData);
+    const response = await this.client.put<User>("/profile", userData);
     return response.data;
   }
 
   // Portfolio endpoints
   async getPortfolios(): Promise<Portfolio[]> {
-    const response = await this.client.get<Portfolio[]>('/portfolios');
+    const response = await this.client.get<Portfolio[]>("/portfolios");
     return response.data;
   }
 
@@ -185,7 +186,7 @@ class ApiClient {
     portfolioData: CreatePortfolioRequest
   ): Promise<Portfolio> {
     const response = await this.client.post<Portfolio>(
-      '/portfolios',
+      "/portfolios",
       portfolioData
     );
     return response.data;
@@ -211,7 +212,7 @@ class ApiClient {
     search?: string;
     type?: string;
   }): Promise<Asset[]> {
-    const response = await this.client.get<Asset[]>('/assets', { params });
+    const response = await this.client.get<Asset[]>("/assets", { params });
     return response.data;
   }
 
@@ -229,8 +230,8 @@ class ApiClient {
   }
 
   async getMultipleMarketData(symbols: string[]): Promise<MarketData[]> {
-    const response = await this.client.get<MarketData[]>('/market-data', {
-      params: { symbols: symbols.join(',') },
+    const response = await this.client.get<MarketData[]>("/market-data", {
+      params: { symbols: symbols.join(",") },
     });
     return response.data;
   }
@@ -238,14 +239,14 @@ class ApiClient {
   // Trading endpoints
   async executeTrade(tradeData: TradeRequest): Promise<TradeExecutionResponse> {
     const response = await this.client.post<TradeExecutionResponse>(
-      '/trades',
+      "/trades",
       tradeData
     );
     return response.data;
   }
 
   async getTradeHistory(portfolioId?: string): Promise<Trade[]> {
-    const response = await this.client.get<Trade[]>('/trades', {
+    const response = await this.client.get<Trade[]>("/trades", {
       params: portfolioId ? { portfolioId } : undefined,
     });
     return response.data;
@@ -269,7 +270,7 @@ class ApiClient {
     category?: string;
     difficulty?: string;
   }): Promise<Quiz[]> {
-    const response = await this.client.get<Quiz[]>('/quizzes', { params });
+    const response = await this.client.get<Quiz[]>("/quizzes", { params });
     return response.data;
   }
 
@@ -289,7 +290,7 @@ class ApiClient {
   }
 
   async getDailyQuiz(): Promise<Quiz> {
-    const response = await this.client.get<Quiz>('/quizzes/daily');
+    const response = await this.client.get<Quiz>("/quizzes/daily");
     return response.data;
   }
 }

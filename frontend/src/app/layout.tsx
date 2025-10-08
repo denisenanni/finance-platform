@@ -52,16 +52,36 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable}`}
+        style={{ margin: 0, padding: 0, fontFamily: "var(--font-geist-sans)" }}
       >
         <QueryProvider>
           <AuthProvider>
             {showLayout ? (
-              <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
+              <div
+                style={{
+                  display: "flex",
+                  height: "100vh",
+                  backgroundColor: "var(--bg-primary)",
+                }}
+              >
                 <Sidebar isCollapsed={isSidebarCollapsed} />
-                <div className="flex flex-1 flex-col overflow-hidden">
+                <div
+                  style={{
+                    display: "flex",
+                    flex: 1,
+                    flexDirection: "column",
+                    overflow: "hidden",
+                  }}
+                >
                   <Header toggleSidebar={toggleSidebar} />
-                  <main className="flex-1 overflow-y-auto p-4 md:p-6">
+                  <main
+                    style={{
+                      flex: 1,
+                      overflowY: "auto",
+                      padding: "16px",
+                    }}
+                  >
                     {children}
                   </main>
                   <Footer />

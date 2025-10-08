@@ -18,7 +18,6 @@ function ProfileContent() {
   const [formData, setFormData] = useState({
     firstName: user?.firstName || "",
     lastName: user?.lastName || "",
-    bio: "",
   });
 
   const fetchProfile = async () => {
@@ -46,7 +45,6 @@ function ProfileContent() {
     setFormData({
       firstName: user?.firstName || "",
       lastName: user?.lastName || "",
-      bio: "",
     });
   };
 
@@ -211,26 +209,12 @@ function ProfileContent() {
                     />
                   </div>
                 </div>
-                <div>
-                  <label>Bio</label>
-                  <textarea
-                    value={formData.bio}
-                    onChange={(e) =>
-                      setFormData({ ...formData, bio: e.target.value })
-                    }
-                    rows={3}
-                    placeholder="Tell us about your investment journey..."
-                  />
-                </div>
               </div>
             ) : (
               <>
                 <h1 style={{ fontSize: "1.875rem", fontWeight: "bold" }}>
                   {profileData.user.firstName} {profileData.user.lastName}
                 </h1>
-                <p className="text-secondary" style={{ marginTop: "4px" }}>
-                  {formData.bio || "No bio yet. Click edit to add one!"}
-                </p>
                 {profileData.user.emailVerified && (
                   <span
                     className="badge badge-success"
@@ -348,10 +332,21 @@ function ProfileContent() {
             {profileData.portfolios.length}
           </p>
         </div>
+
+        <div className="card">
+          <p className="text-muted" style={{ fontSize: "0.875rem" }}>
+            Virtual balance
+          </p>
+          <p
+            style={{ fontSize: "1.5rem", fontWeight: "bold", marginTop: "4px" }}
+          >
+            {formatCurrency(profileData.user.virtualBalance)}
+          </p>
+        </div>
       </div>
 
       {/* Portfolios Section */}
-      <div>
+      <div className="card">
         <h2
           style={{
             fontSize: "1.5rem",

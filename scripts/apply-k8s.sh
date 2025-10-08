@@ -214,8 +214,6 @@ PGADMIN_PID=$!
 
 echo "✅ Port forwards started. Press Ctrl+C to stop all services."
 
-# Wait for all of them
-wait $NGINX_PID $BACKEND_PID $PGADMIN_PID
 
 # Wait a moment for port-forward to establish
 sleep 15
@@ -244,4 +242,4 @@ echo ""
 
 # Keep the script running and wait for the port-forward process
 # This will block until the port-forward is killed or script is interrupted
-wait $PORT_FORWARD_PID
+wait $NGINX_PID $BACKEND_PID $PGADMIN_PID
