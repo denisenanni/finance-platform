@@ -82,14 +82,6 @@ export const useLogout = (options?: UseMutationOptions<void, Error, void>) => {
   });
 };
 
-export const useAuth = () => {
-  const token = apiClient.getAccessToken();
-  return {
-    isAuthenticated: !!token,
-    token,
-  };
-};
-
 // User hooks
 export const useCurrentUser = (options?: UseQueryOptions<User, Error>) => {
   return useQuery({

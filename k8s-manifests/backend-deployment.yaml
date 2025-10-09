@@ -51,6 +51,16 @@ spec:
               value: "1"
             - name: PRISMA_SCHEMA_PATH
               value: /app/prisma/schema.prisma
+            - name: GOOGLE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: google-oauth
+                  key: client-id
+            - name: GOOGLE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: google-oauth
+                  key: client-secret
           # REMOVED: volumeMounts section that was mounting PVC to /app
           readinessProbe:
             httpGet:
