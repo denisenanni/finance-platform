@@ -42,8 +42,8 @@ const trackFailedAttempt = (identifier: string) => {
   activity.attempts++;
   activity.lastAttempt = now;
 
-  // Block after 5 failed attempts
-  if (activity.attempts >= 5) {
+  // Block after 5 failed attempts TODO REVERT
+  if (activity.attempts >= 25) {
     activity.blocked = true;
     activity.blockUntil = new Date(now.getTime() + 30 * 60 * 1000); // Block for 30 minutes
   }
