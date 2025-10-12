@@ -119,15 +119,6 @@ app.use(passport.initialize());
 app.use(
   express.json({
     limit: "10mb",
-    verify: (req, res, buf) => {
-      try {
-        JSON.parse(buf.toString());
-      } catch (e) {
-        const expressReq = req as express.Request;
-        console.warn(`🚫 Invalid JSON from IP: ${expressReq.ip || "unknown"}`);
-        throw new Error("Invalid JSON");
-      }
-    },
   })
 );
 
