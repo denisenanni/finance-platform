@@ -1,14 +1,14 @@
 "use client";
 import React from "react";
 import Link from "next/link";
-import { Home, Users, Settings, BarChart } from "lucide-react";
+import { Home, Settings, BarChart, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const Sidebar = ({ isCollapsed }: { isCollapsed: boolean }) => {
   const menuItems = [
     { name: "Dashboard", href: "/dashboard", icon: Home },
     { name: "Analytics", href: "/analytics", icon: BarChart },
-    { name: "Profile", href: "/profile", icon: Users },
+    { name: "Profile", href: "/profile", icon: UserRound },
     { name: "Settings", href: "#", icon: Settings },
   ];
 

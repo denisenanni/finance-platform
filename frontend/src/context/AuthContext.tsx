@@ -35,12 +35,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const logout = useCallback(() => {
-    setUser(null);
-    apiClient.clearFailedQueue();
-    Cookies.remove("accessToken");
-    Cookies.remove("refreshToken");
-    apiClient.logout().catch(console.error);
+  const logout = useCallback(async () => {
+    try {
+      const token = Cookies.get("accessToken");
+
+      if (token) {
+        await apiClient.logout();
+      }
+    } catch (error) {
+      console.error("Logout API call failed:", error);
+    } finally {
+      setUser(null);
+      apiClient.clearFailedQueue();
+      Cookies.remove("accessToken");
+      Cookies.remove("refreshToken");
+    }
   }, []);
 
   const fetchUser = useCallback(async () => {

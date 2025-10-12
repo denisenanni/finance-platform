@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nginx
+  namespace: financeplatform
 spec:
   replicas: 1
   selector:
@@ -36,5 +37,5 @@ spec:
             name: nginx-default
         - name: nginx-ssl
           secret:
-            secretName: nginx-ssl-secret  # You need to create this TLS secret with your certificates
+            secretName: nginx-ssl-secret # You need to create this TLS secret with your certificates
 

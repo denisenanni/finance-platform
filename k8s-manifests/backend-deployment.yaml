@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: backend
+  namespace: financeplatform
 spec:
   replicas: 1
   selector:
@@ -16,6 +17,14 @@ spec:
         - name: db-migrate
           image: devdenise/financeplatform-backend:latest # Use the same image
           command: ["yarn", "prisma:push"]
+          env:
+            - name: DATABASE_URL
+              value: postgresql://dev:dev123@postgres:5432/financeplatform
+            - name: PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK
+              value: "1"
+        - name: db-seed
+          image: devdenise/financeplatform-backend:latest
+          command: ["yarn", "seed:assets"]
           env:
             - name: DATABASE_URL
               value: postgresql://dev:dev123@postgres:5432/financeplatform
