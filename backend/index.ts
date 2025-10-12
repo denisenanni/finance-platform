@@ -197,6 +197,15 @@ apiRouter.use("/profile", profileRoutes);
 apiRouter.use("/profile", profileRoutes);
 apiRouter.use("/assets", assetsRoutes);
 
+const publicApiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: isProduction ? 200 : 1000,
+  message: {
+    error: "Too many requests to public API",
+    code: "PUBLIC_API_RATE_LIMIT",
+  },
+});
+
 /**
  * @swagger
  * /api/market-data/quote/{symbol}:
