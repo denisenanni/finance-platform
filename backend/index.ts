@@ -5,11 +5,14 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { specs, swaggerConfig, swaggerUi } from "@/swagger";
 import authRoutes from "./src/routes/auth";
+import systemRoutes from "./src/routes/system";
+import newsRoutes from "./src/routes/news";
+import profileRoutes from "./src/routes/profile";
+
 import {
   authenticateToken,
   blockIP,
   clearSecurityData,
-  getSecurityStats,
   requireEmailVerification,
 } from "@/middleware/auth";
 import { prisma } from "@/lib/prisma";
@@ -186,79 +189,6 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 // ============================================================================
-// HEALTH AND MONITORING ENDPOINTS
-// ============================================================================
-
-/**
- * @swagger
- * /health:
- *   get:
- *     summary: Health check endpoint
- *     description: Returns the current health status of the API service
- *     tags: [System]
- *     responses:
- *       200:
- *         description: Service is healthy and operational
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: OK
- *                 timestamp:
- *                   type: string
- *                   format: date-time
- *                 service:
- *                   type: string
- *                   example: FinanceSkills Hub API
- *                 version:
- *                   type: string
- *                   example: 1.0.0
- *                 environment:
- *                   type: string
- *                   example: development
- *                 uptime:
- *                   type: number
- *                   description: Server uptime in seconds
- */
-app.get("/health", (req: Request, res: Response) => {
-  res.status(200).json({
-    status: "OK",
-    timestamp: new Date().toISOString(),
-    service: "FinanceSkills Hub API",
-    version: "1.0.0",
-    environment: process.env.NODE_ENV || "development",
-    uptime: process.uptime(),
-  });
-});
-
-/**
- * @swagger
- * /security/stats:
- *   get:
- *     summary: Get security statistics (Development only)
- *     description: Returns security statistics including rate limiting and blocked IPs. Only available in development mode.
- *     tags: [System]
- *     responses:
- *       200:
- *         description: Security statistics retrieved successfully
- *       404:
- *         description: Endpoint not available in production
- */
-const securityStats = (req: Request, res: Response): void => {
-  if (isProduction) {
-    res.status(404).json({ error: "Not found" });
-    return;
-  }
-
-  res.json(getSecurityStats());
-};
-
-app.get("/security/stats", securityStats);
-
-// ============================================================================
 // API ROUTER
 // ============================================================================
 
@@ -266,6 +196,9 @@ const apiRouter = express.Router();
 
 // Authentication routes
 apiRouter.use("/auth", authRoutes);
+apiRouter.use("/system", systemRoutes);
+apiRouter.use("/news", newsRoutes);
+apiRouter.use("profile", profileRoutes);
 
 // ============================================================================
 // PROFILE ENDPOINTS

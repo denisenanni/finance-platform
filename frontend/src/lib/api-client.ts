@@ -172,6 +172,13 @@ class ApiClient {
     return response.data;
   }
 
+  // news endpoints
+
+  async getNewsList(): Promise<object> {
+    const response = await this.client.get<object>("/news/list");
+    return response.data;
+  }
+
   // Portfolio endpoints
   async getPortfolios(): Promise<Portfolio[]> {
     const response = await this.client.get<Portfolio[]>("/portfolios");

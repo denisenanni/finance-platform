@@ -1,9 +1,8 @@
-// backend/src/routes/news.ts
 import express, { Request, Response } from "express";
 import { optionalAuth } from "../middleware/auth";
 import {
-  NewsDetailsRequest,
-  NewsDetailsResponse,
+  // NewsDetailsRequest,
+  //  NewsDetailsResponse,
   NewsListRequest,
   NewsListResponse,
 } from "@/types/news";
@@ -13,6 +12,33 @@ const router = express.Router();
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || "";
 const RAPIDAPI_HOST = process.env.RAPIDAPI_HOST || "";
 
+/**
+ * @swagger
+ * /news/list:
+ *   post:
+ *     summary: Get list of financial news
+ *     tags: [News]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               region:
+ *                 type: string
+ *                 default: US
+ *               snippetCount:
+ *                 type: string
+ *                 default: 28
+ *               uuids:
+ *                 type: string
+ *                 description: Pagination token from previous response
+ *     responses:
+ *       200:
+ *         description: News list retrieved successfully
+ *       500:
+ *         description: Failed to fetch news
+ */
 router.post(
   "/list",
   optionalAuth,
@@ -92,6 +118,30 @@ router.post(
   }
 );
 
+/**
+ * @swagger
+ * /news/details:
+ *   get:
+ *     summary: Get detailed news article
+ *     tags: [News]
+ *     parameters:
+ *       - in: query
+ *         name: uuid
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: News article UUID
+ *       - in: query
+ *         name: region
+ *         schema:
+ *           type: string
+ *           default: US
+ *     responses:
+ *       200:
+ *         description: News details retrieved successfully
+ *       400:
+ *         description: UUID required
+ */
 router.get(
   "/details",
   optionalAuth,

@@ -1,6 +1,11 @@
+"use client";
+
+import { useNewsList } from "@/lib/api";
 import React from "react";
 
 const DashboardPage = () => {
+  const { data } = useNewsList();
+  console.log({ data });
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       <div className="card">

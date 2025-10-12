@@ -189,3 +189,5 @@ export enum AssetType {
   ETF,
   BOND,
 }
+
+export interface News {}

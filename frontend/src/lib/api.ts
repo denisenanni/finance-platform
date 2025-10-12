@@ -40,6 +40,7 @@ export const queryKeys = {
   dailyQuiz: ["quiz", "daily"] as const,
   tradeHistory: (portfolioId?: string) => ["trades", portfolioId] as const,
   profile: ["profile"] as const,
+  newsList: ["newsList"] as const,
 };
 
 // Auth hooks
@@ -118,6 +119,16 @@ export const useProfile = (
     queryKey: queryKeys.profile,
     queryFn: apiClient.getProfile.bind(apiClient),
     staleTime: 2 * 60 * 1000,
+    ...options,
+  });
+};
+
+// News hooks
+export const useNewsList = (options?: UseQueryOptions<object, Error>) => {
+  return useQuery({
+    queryKey: queryKeys.newsList,
+    queryFn: apiClient.getNewsList.bind(apiClient),
+    staleTime: 2 * 60 * 1000, // 2 minutes
     ...options,
   });
 };
