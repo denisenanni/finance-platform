@@ -11,6 +11,7 @@
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push --accept-data-loss",
     "prisma:studio": "prisma studio",
+    "seed:assets": "ts-node-dev --transpile-only -r tsconfig-paths/register ./src/scripts/seedAssets.ts",
     "test": "jest",
     "test:watch": "jest --watch"
   },
