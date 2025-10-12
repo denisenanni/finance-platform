@@ -9,4 +9,5 @@ export interface User {
   virtualBalance: number;
   lastLoginAt?: Date;
   loginAttempts?: number;
+  createdAt: Date;
 }

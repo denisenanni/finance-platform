@@ -110,7 +110,7 @@ kubectl apply -n $NAMESPACE -f $MANIFEST_DIR/redis-configmap.yaml
 kubectl apply -n $NAMESPACE -f $MANIFEST_DIR/nginx-configmap.yaml
 
 # Generate secrets
-JWT_SECRET=$(openssl rand -base64 32)
+JWT_SECRET=$(openssl rand -base64 64)
 NEXTAUTH_SECRET=$(openssl rand -base64 32)
 
 # Delete existing secrets if they exist (to avoid conflicts)

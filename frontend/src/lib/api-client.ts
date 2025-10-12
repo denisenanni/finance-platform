@@ -20,6 +20,7 @@ import {
   Holding,
   Quiz,
   QuizAnswer,
+  AssetType,
 } from "@/types/api";
 
 class ApiClient {
@@ -210,7 +211,7 @@ class ApiClient {
   // Asset endpoints
   async getAssets(params?: {
     search?: string;
-    type?: string;
+    type?: AssetType;
   }): Promise<Asset[]> {
     const response = await this.client.get<Asset[]>("/assets", { params });
     return response.data;

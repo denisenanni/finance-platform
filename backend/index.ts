@@ -372,7 +372,6 @@ apiRouter.get(
           totalReturn: true,
           returnPercentage: true,
           isDefault: true,
-          createdAt: true,
         },
       });
 

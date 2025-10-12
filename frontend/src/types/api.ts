@@ -13,7 +13,7 @@ export interface Asset {
   id: string;
   symbol: string;
   name: string;
-  assetType: "STOCK" | "CRYPTO" | "ETF" | "BOND";
+  assetType: AssetType;
   exchange: string;
   sector: string;
 }
@@ -181,4 +181,11 @@ export interface ProfileResponse {
   portfolios: Portfolio[];
   stats: ProfileStats;
   securityContext?: ProfileSecurityContext;
+}
+
+export enum AssetType {
+  STOCK,
+  CRYPTO,
+  ETF,
+  BOND,
 }

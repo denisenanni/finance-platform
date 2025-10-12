@@ -19,6 +19,8 @@ import {
   QuizAnswer,
   TradeExecutionResponse,
   Trade,
+  ProfileResponse,
+  AssetType,
 } from "@/types/api";
 import { apiClient } from "./api-client";
 
@@ -27,7 +29,8 @@ export const queryKeys = {
   user: ["user"] as const,
   portfolios: ["portfolios"] as const,
   portfolio: (id: string) => ["portfolio", id] as const,
-  assets: (params?: Record<string, string>) => ["assets", params] as const,
+  assets: (params?: { search?: string; type?: AssetType }) =>
+    ["assets", params] as const,
   asset: (id: string) => ["asset", id] as const,
   marketData: (symbol: string) => ["marketData", symbol] as const,
   multipleMarketData: (symbols: string[]) =>
@@ -36,6 +39,7 @@ export const queryKeys = {
   quiz: (id: string) => ["quiz", id] as const,
   dailyQuiz: ["quiz", "daily"] as const,
   tradeHistory: (portfolioId?: string) => ["trades", portfolioId] as const,
+  profile: ["profile"] as const,
 };
 
 // Auth hooks
@@ -101,7 +105,19 @@ export const useUpdateProfile = (
     mutationFn: apiClient.updateProfile.bind(apiClient),
     onSuccess: (data) => {
       queryClient.setQueryData(queryKeys.user, data);
+      queryClient.invalidateQueries({ queryKey: queryKeys.profile });
     },
+    ...options,
+  });
+};
+
+export const useProfile = (
+  options?: UseQueryOptions<ProfileResponse, Error>
+) => {
+  return useQuery({
+    queryKey: queryKeys.profile,
+    queryFn: apiClient.getProfile.bind(apiClient),
+    staleTime: 2 * 60 * 1000,
     ...options,
   });
 };
@@ -181,7 +197,7 @@ export const useDeletePortfolio = (
 
 // Asset hooks
 export const useAssets = (
-  params?: { search?: string; type?: string },
+  params?: { search?: string; type?: AssetType },
   options?: UseQueryOptions<Asset[], Error>
 ) => {
   return useQuery({

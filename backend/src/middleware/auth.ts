@@ -5,10 +5,12 @@ import rateLimit from "express-rate-limit";
 import { PrismaClient } from "generated/prisma";
 
 const prisma = new PrismaClient();
-const JWT_SECRET =
-  process.env.JWT_SECRET ||
-  "your-super-secret-jwt-key-change-this-in-production";
+const JWT_SECRET = process.env.JWT_SECRET;
 const isProduction = process.env.NODE_ENV === "production";
+
+if (!JWT_SECRET) {
+  throw new Error("🚨 CRITICAL: JWT_SECRET environment variable must be set!");
+}
 
 // ============================================================================
 // SECURITY TRACKING
@@ -43,7 +45,7 @@ const trackFailedAttempt = (identifier: string) => {
   activity.lastAttempt = now;
 
   // Block after 5 failed attempts TODO REVERT
-  if (activity.attempts >= 25) {
+  if (activity.attempts >= (isProduction ? 5 : 100)) {
     activity.blocked = true;
     activity.blockUntil = new Date(now.getTime() + 30 * 60 * 1000); // Block for 30 minutes
   }
@@ -141,6 +143,7 @@ export interface AuthenticatedRequest extends Request {
     emailVerified: boolean;
     lastLoginAt?: Date;
     loginAttempts?: number;
+    createdAt: Date;
   };
   securityContext: {
     ipAddress: string;
@@ -214,7 +217,7 @@ export const authenticateToken = async (
     // 2. Validate Authorization header
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      trackFailedAttempt(clientIP);
+      // trackFailedAttempt(clientIP);
       res.status(401).json({
         error: "Access token required",
         code: "MISSING_TOKEN",
@@ -271,7 +274,7 @@ export const authenticateToken = async (
         return;
       }
     } catch (error) {
-      trackFailedAttempt(clientIP);
+      // trackFailedAttempt(clientIP);
       console.warn(`🚫 JWT verification failed from IP: ${clientIP}`, error);
 
       if (error instanceof jwt.TokenExpiredError) {
@@ -306,6 +309,7 @@ export const authenticateToken = async (
         isActive: true, // Add this field to your User model
         lastLoginAt: true,
         loginAttempts: true,
+        createdAt: true,
         // Add these security fields to your User model if needed:
         // lockedUntil: true,
         // securityFlags: true,
@@ -350,6 +354,7 @@ export const authenticateToken = async (
       emailVerified: user.emailVerified,
       lastLoginAt: user.lastLoginAt || undefined,
       loginAttempts: user.loginAttempts || 0,
+      createdAt: user.createdAt,
     };
 
     req.securityContext = securityContext;
@@ -428,6 +433,7 @@ export const optionalAuth = async (
           virtualBalance: true,
           emailVerified: true,
           isActive: true,
+          createdAt: true,
         },
       });
 
@@ -439,6 +445,7 @@ export const optionalAuth = async (
           lastName: user.lastName,
           virtualBalance: Number(user.virtualBalance),
           emailVerified: user.emailVerified,
+          createdAt: user.createdAt,
         };
 
         console.log(

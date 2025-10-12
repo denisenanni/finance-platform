@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils";
 const Sidebar = ({ isCollapsed }: { isCollapsed: boolean }) => {
   const menuItems = [
     { name: "Dashboard", href: "/dashboard", icon: Home },
-    { name: "Analytics", href: "#", icon: BarChart },
-    { name: "Users", href: "#", icon: Users },
+    { name: "Analytics", href: "/analytics", icon: BarChart },
+    { name: "Profile", href: "/profile", icon: Users },
     { name: "Settings", href: "#", icon: Settings },
   ];
 

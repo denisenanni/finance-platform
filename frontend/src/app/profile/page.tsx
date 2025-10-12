@@ -3,16 +3,14 @@
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { apiClient } from "@/lib/api-client";
-import { ProfileResponse } from "@/types/api";
 import Link from "next/link";
+import { useProfile, useUpdateProfile } from "@/lib/api";
 
 // A component to render the main profile content
 function ProfileContent() {
   const { user, logout } = useAuth();
-  const [profileData, setProfileData] = useState<ProfileResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: profileData, isLoading, error: apiError } = useProfile();
+  const updateProfile = useUpdateProfile();
 
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -20,26 +18,17 @@ function ProfileContent() {
     lastName: user?.lastName || "",
   });
 
-  const fetchProfile = async () => {
-    try {
-      setLoading(true);
-      const data = await apiClient.getProfile();
-      setProfileData(data);
-      setError(null);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to load profile details"
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchProfile();
-  }, []);
+    if (user) {
+      setFormData({
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+      });
+    }
+  }, [user]);
 
   const handleEdit = () => setIsEditing(true);
+
   const handleCancel = () => {
     setIsEditing(false);
     setFormData({
@@ -50,15 +39,13 @@ function ProfileContent() {
 
   const handleSave = async () => {
     try {
-      await apiClient.updateProfile({
+      await updateProfile.mutateAsync({
         firstName: formData.firstName,
         lastName: formData.lastName,
       });
-      await fetchProfile();
       setIsEditing(false);
     } catch (err) {
       console.error("Profile update error:", err);
-      alert("Failed to update profile.");
     }
   };
 
@@ -82,7 +69,7 @@ function ProfileContent() {
       day: "numeric",
     });
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div
         style={{
@@ -102,7 +89,7 @@ function ProfileContent() {
     );
   }
 
-  if (error || !profileData) {
+  if (apiError || !profileData) {
     return (
       <div
         style={{
@@ -124,11 +111,10 @@ function ProfileContent() {
               Error Loading Profile
             </h2>
             <p className="text-secondary" style={{ marginBottom: "24px" }}>
-              {error || "Failed to load profile data"}
+              {apiError instanceof Error
+                ? apiError.message
+                : "Failed to load profile data"}
             </p>
-            <button onClick={() => fetchProfile()} className="btn-primary">
-              Try Again
-            </button>
           </div>
         </div>
       </div>
@@ -147,7 +133,6 @@ function ProfileContent() {
             gap: "24px",
           }}
         >
-          {/* Avatar */}
           <div style={{ position: "relative" }}>
             <div
               style={{
@@ -168,7 +153,6 @@ function ProfileContent() {
             </div>
           </div>
 
-          {/* User Info */}
           <div style={{ flex: 1, textAlign: "center", width: "100%" }}>
             {isEditing ? (
               <div
@@ -196,6 +180,7 @@ function ProfileContent() {
                           firstName: e.target.value,
                         })
                       }
+                      disabled={updateProfile.isPending}
                     />
                   </div>
                   <div>
@@ -206,6 +191,7 @@ function ProfileContent() {
                       onChange={(e) =>
                         setFormData({ ...formData, lastName: e.target.value })
                       }
+                      disabled={updateProfile.isPending}
                     />
                   </div>
                 </div>
@@ -244,14 +230,21 @@ function ProfileContent() {
             </div>
           </div>
 
-          {/* Action Buttons */}
           <div style={{ display: "flex", gap: "8px" }}>
             {isEditing ? (
               <>
-                <button onClick={handleSave} className="btn-primary">
-                  Save
+                <button
+                  onClick={handleSave}
+                  className="btn-primary"
+                  disabled={updateProfile.isPending}
+                >
+                  {updateProfile.isPending ? "Saving..." : "Save"}
                 </button>
-                <button onClick={handleCancel} className="btn-secondary">
+                <button
+                  onClick={handleCancel}
+                  className="btn-secondary"
+                  disabled={updateProfile.isPending}
+                >
                   Cancel
                 </button>
               </>
@@ -277,7 +270,7 @@ function ProfileContent() {
         </div>
       </div>
 
-      {/* Quick Stats */}
+      {/* Quick Stats - USING formatCurrency */}
       <div
         style={{
           display: "grid",
@@ -345,7 +338,7 @@ function ProfileContent() {
         </div>
       </div>
 
-      {/* Portfolios Section */}
+      {/* Portfolios Section - USING formatCurrency */}
       <div className="card">
         <h2
           style={{
@@ -440,7 +433,6 @@ function ProfileContent() {
   );
 }
 
-// A wrapper component to handle auth state
 export default function ProfilePage() {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();

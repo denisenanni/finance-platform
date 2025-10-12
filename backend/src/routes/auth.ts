@@ -11,20 +11,14 @@ const router = express.Router();
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 
-const JWT_SECRET =
-  process.env.JWT_SECRET ||
-  "your-super-secret-jwt-key-change-this-in-production";
+const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "24h";
 const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || "7d";
 const isProduction = process.env.NODE_ENV === "production";
 
-if (
-  !JWT_SECRET ||
-  JWT_SECRET === "your-super-secret-jwt-key-change-this-in-production"
-) {
-  console.warn(
-    "WARNING: Using default JWT secret. Set JWT_SECRET environment variable in production!"
-  );
+if (!JWT_SECRET) {
+  console.error("🚨 CRITICAL: JWT_SECRET environment variable must be set!");
+  throw new Error("JWT_SECRET must be configured");
 }
 
 // ============================================================================
