@@ -107,3 +107,16 @@ Dalla root del progetto:
 
  TO FORWARD BE AND WORK LOCALLY ON FE: kubectl port-forward -n financeplatform svc/backend 3001:3001
 
+LOCAL DEVELOPEMT:
+docker run -d --name postgres-dev \
+  -e POSTGRES_USER=dev \
+  -e POSTGRES_PASSWORD=dev123 \
+  -e POSTGRES_DB=financeplatform \
+  -p 5432:5432 \
+
+  // after docker start postgres-dev
+  // update database url DATABASE_URL=postgresql://dev:dev123@localhost:5432/financeplatform
+// cd backend
+yarn prisma:push
+yarn seed:assets
+yarn dev

@@ -1,11 +1,9 @@
 "use client";
 
-import { useNewsList } from "@/lib/api";
 import React from "react";
+import { NewsFeedWidget } from "./NewsFeedWidget";
 
 const DashboardPage = () => {
-  const { data } = useNewsList();
-  console.log({ data });
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       <div className="card">
@@ -33,6 +31,7 @@ const DashboardPage = () => {
           </div>
 
           {/* You can add more content here */}
+          <NewsFeedWidget />
         </div>
       </div>
     </div>

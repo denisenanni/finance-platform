@@ -21,6 +21,7 @@ import {
   Quiz,
   QuizAnswer,
   AssetType,
+  NewsListResponse,
 } from "@/types/api";
 
 class ApiClient {
@@ -163,19 +164,30 @@ class ApiClient {
   }
 
   async getProfile(): Promise<ProfileResponse> {
-    const response = await this.client.get<ProfileResponse>("/profile");
+    const response = await this.client.get<ProfileResponse>("/profile/detail");
     return response.data;
   }
 
   async updateProfile(userData: Partial<User>): Promise<User> {
-    const response = await this.client.put<User>("/profile", userData);
+    const response = await this.client.put<User>("/profile/detail", userData);
     return response.data;
   }
 
   // news endpoints
 
-  async getNewsList(): Promise<object> {
-    const response = await this.client.get<object>("/news/list");
+  async getNewsList(params: {
+    region?: string;
+    snippetCount?: string;
+    searchTerm?: string;
+  }): Promise<NewsListResponse> {
+    // Use GET with query params
+    const response = await this.client.get<NewsListResponse>("/news/list", {
+      params: {
+        region: params.region || "US",
+        snippetCount: params.snippetCount || "28",
+        searchTerm: params.searchTerm || "",
+      },
+    });
     return response.data;
   }
 

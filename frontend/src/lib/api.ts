@@ -124,12 +124,19 @@ export const useProfile = (
 };
 
 // News hooks
-export const useNewsList = (options?: UseQueryOptions<object, Error>) => {
+export const useNewsList = (params?: {
+  region?: string;
+  snippetCount?: string;
+  searchTerm?: string;
+}) => {
   return useQuery({
-    queryKey: queryKeys.newsList,
-    queryFn: apiClient.getNewsList.bind(apiClient),
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    ...options,
+    queryKey: ["newsList", params],
+    queryFn: () =>
+      apiClient.getNewsList({
+        region: params?.region || "US",
+        snippetCount: params?.snippetCount || "28",
+        searchTerm: params?.searchTerm || "",
+      }),
   });
 };
 

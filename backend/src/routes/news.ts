@@ -1,9 +1,8 @@
 import express, { Request, Response } from "express";
-import { optionalAuth } from "../middleware/auth";
+import { authenticateToken } from "../middleware/auth";
 import {
   // NewsDetailsRequest,
   //  NewsDetailsResponse,
-  NewsListRequest,
   NewsListResponse,
 } from "@/types/news";
 
@@ -15,41 +14,56 @@ const RAPIDAPI_HOST = process.env.RAPIDAPI_HOST || "";
 /**
  * @swagger
  * /news/list:
- *   post:
+ *   get:
  *     summary: Get list of financial news
  *     tags: [News]
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               region:
- *                 type: string
- *                 default: US
- *               snippetCount:
- *                 type: string
- *                 default: 28
- *               uuids:
- *                 type: string
- *                 description: Pagination token from previous response
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: region
+ *         schema:
+ *           type: string
+ *           default: US
+ *         description: Region code for news
+ *       - in: query
+ *         name: snippetCount
+ *         schema:
+ *           type: string
+ *           default: 28
+ *         description: Number of news items to return
+ *       - in: query
+ *         name: searchTerm
+ *         schema:
+ *           type: string
+ *           default: ""
+ *         description: Search term to filter news
  *     responses:
  *       200:
  *         description: News list retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: object
+ *                 status:
+ *                   type: string
+ *                   example: OK
+ *       401:
+ *         description: Unauthorized - authentication required
  *       500:
  *         description: Failed to fetch news
  */
-router.post(
+router.get(
   "/list",
-  optionalAuth,
-  async (
-    req: Request<{}, {}, NewsListRequest>,
-    res: Response
-  ): Promise<void> => {
+  authenticateToken,
+  async (req: Request, res: Response): Promise<void> => {
     try {
-      const { region = "US", snippetCount = "28", uuids = "" } = req.body;
+      const { region = "US", snippetCount = "28", searchTerm = "" } = req.query;
 
-      if (!RAPIDAPI_KEY) {
+      /*       if (!RAPIDAPI_KEY) {
         console.warn("⚠️  RAPIDAPI_KEY not set, returning mock data");
         const mockResponse: NewsListResponse = {
           data: {
@@ -85,7 +99,7 @@ router.post(
         };
         res.json(mockResponse);
         return;
-      }
+      } */
 
       const url = `https://${RAPIDAPI_HOST}/news/v2/list`;
 
@@ -98,7 +112,7 @@ router.post(
             "x-rapidapi-host": RAPIDAPI_HOST,
             "Content-Type": "text/plain",
           },
-          body: uuids,
+          body: searchTerm || undefined,
         }
       );
 
@@ -144,7 +158,7 @@ router.post(
  */
 router.get(
   "/details",
-  optionalAuth,
+  authenticateToken,
   async (req: Request, res: Response): Promise<void> => {
     try {
       const { uuid, region = "US" } = req.query;

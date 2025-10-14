@@ -190,4 +190,104 @@ export enum AssetType {
   BOND,
 }
 
-export interface News {}
+export type Region =
+  | "US"
+  | "BR"
+  | "AU"
+  | "CA"
+  | "FR"
+  | "DE"
+  | "HK"
+  | "IN"
+  | "IT"
+  | "ES"
+  | "GB"
+  | "SG";
+
+export interface NewsListResponse {
+  data: Data;
+  status: string;
+}
+
+export interface Data {
+  ntk: Ntk;
+  main: Main;
+}
+
+export interface Ntk {
+  stream: any[];
+  nextPage: boolean;
+  pagination: Pagination;
+}
+
+export interface Pagination {
+  uuids: string;
+}
+
+export interface Main {
+  stream: Stream[];
+  nextPage: boolean;
+  pagination: Pagination2;
+}
+
+export interface Stream {
+  id: string;
+  content: Content;
+}
+
+export interface Content {
+  id: string;
+  contentType: string;
+  title: string;
+  pubDate: string;
+  tags: string[];
+  thumbnail: Thumbnail;
+  clickThroughUrl?: ClickThroughUrl;
+  canonicalUrl: CanonicalUrl;
+  previewUrl?: string;
+  provider: Provider;
+  providerContentUrl: string;
+  finance: Finance;
+}
+
+export interface Thumbnail {
+  resolutions: Resolution[];
+}
+
+export interface Resolution {
+  url: string;
+  width: number;
+  height: number;
+  tag: string;
+}
+
+export interface ClickThroughUrl {
+  url: string;
+}
+
+export interface CanonicalUrl {
+  url: string;
+}
+
+export interface Provider {
+  displayName: string;
+  sourceId: string;
+}
+
+export interface Finance {
+  stockTickers?: StockTicker[];
+  premiumFinance: PremiumFinance;
+}
+
+export interface StockTicker {
+  symbol: string;
+}
+
+export interface PremiumFinance {
+  isPremiumNews: boolean;
+  isPremiumFreeNews: boolean;
+}
+
+export interface Pagination2 {
+  uuids: string;
+}
