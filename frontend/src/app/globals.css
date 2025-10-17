@@ -175,4 +175,12 @@
 .slider:hover {
   opacity: 0.8;
 }
-/* Theme Switch */
+
+.icon {
+  height: 1.5rem;
+  width: 1.5rem;
+  padding: 4px;
+  position: absolute;
+  box-sizing: border-box;
+  transform: translateY(-50%);
+}

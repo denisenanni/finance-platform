@@ -30,6 +30,11 @@
   --shadow-md: 0 1px 3px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.15);
   --shadow-xl: 0 10px 25px rgba(0, 0, 0, 0.2);
+
+  --xs: 11px;
+  --s: 12px;
+  --m: 14px;
+  --l: 16px;
 }
 
 /* Dark Theme */
@@ -90,6 +95,11 @@ h6 {
   margin: 0;
 }
 
+h4 {
+  font-weight: bold;
+  font-size: var(--m);
+}
+
 p {
   color: var(--text-body);
   margin: 0;
@@ -109,6 +119,7 @@ a {
   color: var(--primary);
   text-decoration: none;
   transition: color 0.2s ease;
+  cursor: pointer;
 }
 
 a:hover {
@@ -307,6 +318,20 @@ hr {
   font-size: 12px;
   font-weight: 600;
   line-height: 1;
+}
+
+.badge-block {
+  display: inline-flex;
+  width: fit-content;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  line-height: 1.4;
+  white-space: nowrap;
 }
 
 .badge-success {
