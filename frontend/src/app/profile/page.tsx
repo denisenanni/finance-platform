@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { useProfile, useUpdateProfile } from "@/lib/api";
+import { formatCurrency, formatDate } from "@/lib/utils";
 
 // A component to render the main profile content
 function ProfileContent() {
@@ -55,19 +56,6 @@ function ProfileContent() {
       user.lastName?.[0] || ""
     }`.toUpperCase();
   };
-
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(value);
-
-  const formatDate = (value: string | Date) =>
-    new Date(value).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
 
   if (isLoading) {
     return (

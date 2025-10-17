@@ -25,9 +25,6 @@ const DashboardPage = () => {
             >
               Dashboard
             </h1>
-            <p className="text-secondary" style={{ fontSize: "0.875rem" }}>
-              Welcome to your dashboard!
-            </p>
           </div>
 
           {/* You can add more content here */}
