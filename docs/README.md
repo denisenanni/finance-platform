@@ -120,3 +120,11 @@ docker run -d --name postgres-dev \
 yarn prisma:push
 yarn seed:assets
 yarn dev
+
+
+docker run -d \
+  --name redis-dev \
+  -p 6379:6379 \
+  redis:7-alpine
+
+REDIS_URL=redis://localhost:6379

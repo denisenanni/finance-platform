@@ -94,7 +94,7 @@ export interface NewsDetailsResponse {
 export interface NewsListRequest {
   region?: string;
   snippetCount?: string;
-  searchTerm?: string;
+  uuids?: string;
 }
 
 export interface NewsDetailsRequest {
