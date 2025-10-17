@@ -291,3 +291,5 @@ export interface PremiumFinance {
 export interface Pagination2 {
   uuids: string;
 }
+
+export interface NewsDetailsResponse {}

@@ -22,6 +22,7 @@ import {
   QuizAnswer,
   AssetType,
   NewsListResponse,
+  NewsDetailsResponse,
 } from "@/types/api";
 
 class ApiClient {
@@ -180,7 +181,6 @@ class ApiClient {
     snippetCount?: string;
     searchTerm?: string;
   }): Promise<NewsListResponse> {
-    // Use GET with query params
     const response = await this.client.get<NewsListResponse>("/news/list", {
       params: {
         region: params.region || "US",
@@ -188,6 +188,18 @@ class ApiClient {
         searchTerm: params.searchTerm || "",
       },
     });
+    return response.data;
+  }
+
+  async getNewsDetails(params: { uuid: string }): Promise<NewsDetailsResponse> {
+    const response = await this.client.get<NewsDetailsResponse>(
+      "/news/details",
+      {
+        params: {
+          region: params.uuid,
+        },
+      }
+    );
     return response.data;
   }
 
